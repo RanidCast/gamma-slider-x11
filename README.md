@@ -10,7 +10,7 @@ It is a lightweight GUI wrapper around a tiny bundled X11/RandR gamma engine. Th
 
 ## Screenshot
 
-![Tray popup](screenshots/English.png)
+![Tray popup](screenshots/English(1.1).png)
 
 
 ## Features

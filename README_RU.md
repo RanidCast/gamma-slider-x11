@@ -10,7 +10,7 @@
 
 ## Скриншот
 
-![Окно слайдера](screenshots/Russian.png)
+![Окно слайдера](screenshots/Russian(1.1).png)
 
 
 ## Возможности
