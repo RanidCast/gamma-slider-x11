@@ -2,11 +2,11 @@
 
 ### [English]([https://github.com/RanidCast/gamma-slider-x11/blob/main/README.md](https://github.com/RanidCast/gamma-slider-x11/tree/dev?tab=readme-ov-file#)) | [Русский](https://github.com/RanidCast/gamma-slider-x11/blob/main/README_RU.md)
 
-A small tray utility for changing screen color temperature on Linux/X11.
+A small multi-platform tray utility for changing screen color temperature on Linux/X11 and Windows.
 
 It is a lightweight GUI wrapper around a tiny bundled X11/RandR gamma engine. The app was made for quick personal use from the system tray: click the tray icon, move the slider, and the screen temperature changes immediately.
 
-> X11 only. Wayland does not expose the same RandR gamma controls to regular desktop applications, so this tool is intentionally limited to X11 sessions.
+> Linux support remains X11-only. Wayland does not expose the same RandR gamma controls to regular desktop applications, so the Linux backend is intentionally limited to X11 sessions. Windows uses a separate GDI backend.
 
 ## Screenshot
 
@@ -20,19 +20,37 @@ It is a lightweight GUI wrapper around a tiny bundled X11/RandR gamma engine. Th
 - Optional value display directly in the tray icon.
 - Enable/disable switch.
 - Optional higher gamma/contrast mode for better visibility.
+- Three color calculation modes: Classic, Aggressive, and Mathematical.
 - Smooth automatic day/night mode.
 - Autostart support.
 - PyQt5/PyQt6 compatibility.
 - Tiny bundled gamma engine, no full Redshift dependency required.
 
-## Requirements
+## Platforms and requirements
 
-- Linux with an X11 session.
 - Python 3.
 - PyQt5 or PyQt6.
+
+### Linux/X11
+
+- Linux with an X11 session.
 - X11 RandR support.
 
 On many desktop distributions PyQt is already available. If not, install the package from your distribution repositories, for example `python-pyqt5`, `python3-pyqt5`, or `python3-pyqt6`.
+
+## Windows
+
+Unpack the complete `gamma-slider-windows-<ver>.zip` from GitHub Releases and run `gamma-slider.exe`. Keep the `_internal` directory next to the executable. No installer is required.
+
+Running from source needs Python 3 and PyQt5 (or PyQt6).
+
+The Windows build supports per-user autostart through the application menu. It does not require administrator rights.
+
+Turn off Windows Night Light. HDR and some NVIDIA drivers ignore `SetDeviceGammaRamp`, so the slider may have no effect.
+
+The repository name still says `x11` for historical reasons. Windows uses a separate GDI gamma backend.
+
+The three color modes are available on both supported platforms. They affect the generated color ramp; the platform-specific backend only applies that ramp to the display.
 
 ## Install
 
@@ -86,7 +104,7 @@ sudo pacman -U ./gamma-slider-x11-1.0.0-1-x86_64.pkg.tar.zst
 If you are running the GNOME desktop environment, please note that GNOME has native restrictions regarding the system tray:
 
 1. **Missing Tray Icon:** GNOME does not support app indicators natively. You must manually install and enable an extension like **AppIndicator and KStatusNotifierItem Support** to make the tray icon visible.
-2. **Click Behavior Bug:** Due to the way GNOME's AppIndicator extension translates mouse events to PyQt applications, single-clicking (both Left and Right click) on the tray icon might immediately trigger the context menu and execute the "Exit/Quit" action. 
+2. **Click Behavior Bug:** Due to the way GNOME's AppIndicator extension translates mouse events to PyQt applications, single-clicking (both Left and Right click) on the tray icon might immediately trigger the context menu and execute the "Exit/Quit" action.
    - **Workaround:** Double-click the tray icon to open the program window properly, or use the **Middle Mouse Button (Scroll Click)** to trigger a clean Right-click menu without instantly closing the app.
 
 Additionally, remember that this tool is strictly for X11 sessions. If your distribution defaults to Wayland, you must switch your session to X11/Xorg on the login screen to use Gamma Slider.

@@ -18,6 +18,8 @@ usage() {
 uninstall() {
     echo "Uninstalling Gamma Slider X11..."
     rm -f "$MENU_FILE" "$AUTOSTART_FILE" "$LOCK_FILE"
+    rm -f "$HOME/.local/share/applications/gamma_slider.desktop"
+    rm -f "$HOME/.config/autostart/gamma_slider.desktop"
     rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/gamma-slider-x11.svg"
     rm -rf "$DATA_DIR" "$CONFIG_DIR"
     echo "Done. Repository files were not removed: $DIR"
