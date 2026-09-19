@@ -84,9 +84,11 @@ python3 app.py
 
 ## Упаковка
 
+См. [DEVELOPMENT.md](DEVELOPMENT.md) с инструкциями по разработке, сборке и выпуску релизов.
+
 Готовые файлы релиза прикрепляются в GitHub Releases:
 
-- `gamma-slider-x11(v1.1).zip` для исходного архива
+- `gamma-slider-x11-v1.1.0-source.zip` для исходного архива
 - `gamma-slider-x11_1.1.0_all.deb` для Debian/Ubuntu/Mint
 - `gamma-slider-x11-1.1.0-1.noarch.rpm` для Fedora/RPM-based дистрибутивов
 - `gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst` для Arch

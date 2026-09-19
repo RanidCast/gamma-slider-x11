@@ -84,9 +84,11 @@ This removes the menu entry, autostart entry, config, logs, and the unpacked gam
 
 ## Packaging
 
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the development, build, and release workflow.
+
 Prebuilt release files are attached in GitHub Releases:
 
-- `gamma-slider-x11(v1.1).zip` for the plain source bundle
+- `gamma-slider-x11-v1.1.0-source.zip` for the plain source bundle
 - `gamma-slider-x11_1.1.0_all.deb` for Debian/Ubuntu/Mint
 - `gamma-slider-x11-1.1.0-1.noarch.rpm` for Fedora/RPM-based distros
 - `gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst` for Arch
