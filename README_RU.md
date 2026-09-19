@@ -86,17 +86,17 @@ python3 app.py
 
 Готовые файлы релиза прикрепляются в GitHub Releases:
 
-- `gamma-slider-x11(v1.0).zip` для исходного архива
-- `gamma-slider-x11_1.0.0_all.deb` для Debian/Ubuntu/Mint
-- `gamma-slider-x11-1.0.0-1.noarch.rpm` для Fedora/RPM-based дистрибутивов
-- `gamma-slider-x11-1.0.0-1-x86_64.pkg.tar.zst` для Arch
+- `gamma-slider-x11(v1.1).zip` для исходного архива
+- `gamma-slider-x11_1.1.0_all.deb` для Debian/Ubuntu/Mint
+- `gamma-slider-x11-1.1.0-1.noarch.rpm` для Fedora/RPM-based дистрибутивов
+- `gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst` для Arch
 
 Пакеты ставятся напрямую:
 
 ```bash
-sudo apt install ./gamma-slider-x11_1.0.0_all.deb
-sudo dnf install ./gamma-slider-x11-1.0.0-1.noarch.rpm
-sudo pacman -U ./gamma-slider-x11-1.0.0-1-x86_64.pkg.tar.zst
+sudo apt install ./gamma-slider-x11_1.1.0_all.deb
+sudo dnf install ./gamma-slider-x11-1.1.0-1.noarch.rpm
+sudo pacman -U ./gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst
 ```
 
 ## Известные проблемы в окружении GNOME

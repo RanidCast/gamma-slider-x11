@@ -86,17 +86,17 @@ This removes the menu entry, autostart entry, config, logs, and the unpacked gam
 
 Prebuilt release files are attached in GitHub Releases:
 
-- `gamma-slider-x11(v1.0).zip` for the plain source bundle
-- `gamma-slider-x11_1.0.0_all.deb` for Debian/Ubuntu/Mint
-- `gamma-slider-x11-1.0.0-1.noarch.rpm` for Fedora/RPM-based distros
-- `gamma-slider-x11-1.0.0-1-x86_64.pkg.tar.zst` for Arch
+- `gamma-slider-x11(v1.1).zip` for the plain source bundle
+- `gamma-slider-x11_1.1.0_all.deb` for Debian/Ubuntu/Mint
+- `gamma-slider-x11-1.1.0-1.noarch.rpm` for Fedora/RPM-based distros
+- `gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst` for Arch
 
 Install the packages directly:
 
 ```bash
-sudo apt install ./gamma-slider-x11_1.0.0_all.deb
-sudo dnf install ./gamma-slider-x11-1.0.0-1.noarch.rpm
-sudo pacman -U ./gamma-slider-x11-1.0.0-1-x86_64.pkg.tar.zst
+sudo apt install ./gamma-slider-x11_1.1.0_all.deb
+sudo dnf install ./gamma-slider-x11-1.1.0-1.noarch.rpm
+sudo pacman -U ./gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst
 ```
 
 ## GNOME Desktop Known Issues
