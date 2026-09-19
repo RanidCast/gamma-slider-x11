@@ -1,0 +1,33 @@
+pkgname=gamma-slider-x11
+pkgver=1.1.0
+pkgrel=1
+pkgdesc="Simple X11 tray app for changing screen color temperature"
+arch=('x86_64')
+url="https://github.com/RanidCast/gamma-slider-x11"
+license=('GPL-3.0-or-later')
+depends=('python' 'python-pyqt5' 'libx11' 'libxcb')
+optdepends=('python-pyqt6: use PyQt6 instead of PyQt5')
+source=("$pkgname-v$pkgver-source.zip::$url/releases/download/v$pkgver/$pkgname-v$pkgver-source.zip")
+sha256sums=('3b4036a8f044810c49c85a4049ce9b0060c1031c53ffebde5d7f7107ad2dbfd1')
+
+package() {
+    install -Dm755 "$srcdir/app.py" "$pkgdir/opt/$pkgname/app.py"
+    install -Dm755 "$srcdir/install.sh" "$pkgdir/opt/$pkgname/install.sh"
+    install -Dm644 "$srcdir/gamma_slider_icon.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/gamma-slider-x11.svg"
+
+    install -Dm755 /dev/stdin "$pkgdir/usr/bin/gamma-slider-x11" <<'EOF'
+#!/usr/bin/env bash
+exec python3 /opt/gamma-slider-x11/app.py "$@"
+EOF
+
+    install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/gamma-slider-x11.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Gamma Slider X11
+Comment=Change screen color temperature on X11
+Exec=gamma-slider-x11
+Icon=gamma-slider-x11
+Terminal=false
+Categories=Utility;Settings;
+EOF
+}
