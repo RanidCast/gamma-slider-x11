@@ -87,6 +87,10 @@ git tag --list
 
 Never publish a file from an old backup simply because its filename has the new version. Rebuild it or verify that its bytes came from the tagged source revision.
 
+## Current packaging note
+
+The Linux package artifacts for `v1.1.0` were built successfully, but the older packaging scripts and their generated files have not yet been migrated into this clean Git clone. Until that migration is done, do not delete the backup folder if another Linux package rebuild is needed. Before the next release, add reviewed Debian, RPM, and Arch build scripts to this repository and commit them so every platform build starts from one source tree.
+
 ## Backup and cleanup
 
 The old migration backup is:
