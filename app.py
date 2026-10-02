@@ -205,9 +205,12 @@ class JumpSlider(QSlider):
         super().mousePressEvent(event)
 
     def wheelEvent(self, event):
-        if not self.isEnabled(): return
+        if not self.isEnabled():
+            event.ignore()
+            return
         delta = 100 if event.angleDelta().y() > 0 else -100
         self.setValue(max(self.minimum(), min(self.maximum(), self.value() + delta)))
+        event.accept()
 
 
 class PopupSlider(QWidget):
@@ -438,6 +441,23 @@ class PopupSlider(QWidget):
         toggle_autostart()
         self.retranslate_ui()
 
+    def wheelEvent(self, event):
+        widget = QApplication.widgetAt(QCursor.pos())
+        current = widget
+        while current:
+            if isinstance(current, QComboBox):
+                super().wheelEvent(event)
+                return
+            current = current.parentWidget()
+        if not self.slider.isEnabled():
+            event.ignore()
+            return
+        delta = 100 if event.angleDelta().y() > 0 else -100
+        self.slider.setValue(
+            max(self.slider.minimum(), min(self.slider.maximum(), self.slider.value() + delta))
+        )
+        event.accept()
+
     def showEvent(self, event):
         self._wait_for_mouse_release = True
         self._pending_outside_click = False
@@ -591,11 +611,12 @@ class TrayApp(QObject):
         p.setRenderHint(_ANTIALIAS)
         p.setBrush(QColor("#fb923c"))
         p.setPen(_NO_PEN)
-        p.drawEllipse(4, 4, 56, 56)
+        p.drawRoundedRect(2, 2, 60, 60, 8, 8)
         if show:
+            text = str(val // 100)
             p.setPen(QColor("black"))
-            p.setFont(QFont("Verdana", 28, _BOLD))
-            p.drawText(pix.rect(), _ALIGN_CENTER, str(val // 100))
+            p.setFont(QFont("Verdana", 22 if len(text) >= 3 else 28, _BOLD))
+            p.drawText(pix.rect(), _ALIGN_CENTER, text)
         p.end()
         self.tray.setIcon(QIcon(pix))
         self.tray.setToolTip(f"{val} K")
