@@ -19,6 +19,8 @@ packaging/macos/GammaSlider.iconset/
 
 uninstall.sh
 appComment.py
+LastAnswer.md
+*.code-workspace
 g-engine/Answer.md
 g-engine/EXAMPLES.md
 g-engine/G-ENGINE-README.md
