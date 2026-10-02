@@ -32,7 +32,7 @@ The application stores its config and runtime files outside the repository:
 cd /home/ilya/Applications/gamma-slider-x11
 git pull --ff-only
 # edit the source
-python3 -m py_compile app.py backend_linux.py backend_win32.py gamma_color.py platform_support.py
+python3 -m py_compile app.py backend_linux.py backend_win32.py backend_macos.py gamma_color.py platform_support.py
 python3 -m pytest -q
 ./install.sh --check
 git status
@@ -58,11 +58,26 @@ Compress-Archive -Path dist\gamma-slider -DestinationPath gamma-slider-windows-l
 
 The resulting archive must contain `gamma-slider.exe` and the complete `_internal` folder. Test the archive on Windows before release. The repository workflow in `.github/workflows/windows-release.yml` performs this build automatically for version tags.
 
+## macOS development
+
+macOS binaries cannot be built on CachyOS. Use a Mac or the GitHub Actions workflow in `.github/workflows/macos-release.yml`.
+
+```bash
+python3 -m pip install PyQt5 pyinstaller
+python3 packaging/macos/make_icns.py
+./packaging/macos/build-dmg.sh local
+```
+
+The result is `gamma-slider-macos-<tag>.dmg` with `Gamma Slider.app` and a shortcut to Applications. The workflow targets Apple Silicon (`macos-latest`). Trigger it with `workflow_dispatch` or a `v*` tag.
+
+Ad-hoc signing is used. Notarization requires an Apple Developer ID and is not part of the default pipeline.
+
 ## Version history
 
 - `v1.0` is the original release.
 - `v1.1.0` adds Windows support, the Windows GDI backend, three color calculation modes, Windows per-user autostart, and updated screenshots/documentation.
-- Future releases should use semantic version tags such as `v1.2.0`.
+- `v1.2.0` is intended to add macOS support: a CoreGraphics backend, LaunchAgent autostart, and a DMG from GitHub Actions.
+- Future releases should use semantic version tags such as `v1.3.0`.
 
 Git history is already present in this clone. Inspect it with:
 
@@ -78,12 +93,13 @@ git tag --list
 3. Run Python syntax checks and tests.
 4. Test the Linux installation on an X11 session.
 5. Build or obtain the Windows onedir ZIP and test it on Windows.
-6. Build Debian, RPM, and Arch packages from the same source revision. Verify their embedded versions.
-7. Create and push an annotated tag, for example `v1.2.0`.
-8. Confirm the GitHub Actions Windows job completes.
-9. Attach the Windows ZIP, Linux packages, source archive, and a checksum file to the GitHub Release.
-10. Write release notes with changes, downloads, requirements, and known limitations.
-11. Download the public assets and verify their checksums and archive integrity.
+6. Build or obtain the macOS DMG from the macOS workflow and test it on an Apple Silicon Mac.
+7. Build Debian, RPM, and Arch packages from the same source revision. Verify their embedded versions.
+8. Create and push an annotated tag, for example `v1.2.0`.
+9. Confirm the GitHub Actions Windows and macOS jobs complete.
+10. Attach the Windows ZIP, macOS DMG, Linux packages, source archive, and a checksum file to the GitHub Release.
+11. Write release notes with changes, downloads, requirements, and known limitations.
+12. Download the public assets and verify their checksums and archive integrity.
 
 Never publish a file from an old backup simply because its filename has the new version. Rebuild it or verify that its bytes came from the tagged source revision.
 

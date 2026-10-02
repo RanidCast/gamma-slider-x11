@@ -16,6 +16,10 @@ def is_linux():
     return sys.platform.startswith("linux")
 
 
+def is_macos():
+    return sys.platform == "darwin"
+
+
 class Paths:
     def __init__(self):
         if is_windows():
@@ -28,6 +32,19 @@ class Paths:
             self.log_file = os.path.join(self.log_dir, "gamma_slider.log")
             self.engine = None
             self.autostart_file = None
+            self.menu_file = None
+        elif is_macos():
+            home = os.path.expanduser("~")
+            support = os.path.join(home, "Library", "Application Support", "gamma-slider")
+            self.config_dir = support
+            self.log_dir = os.path.join(home, "Library", "Logs", "gamma-slider")
+            self.data_dir = support
+            self.config_file = os.path.join(self.config_dir, "gamma_slider.conf")
+            self.log_file = os.path.join(self.log_dir, "gamma_slider.log")
+            self.engine = None
+            self.autostart_file = os.path.join(
+                home, "Library", "LaunchAgents", "com.ranidcast.gamma-slider.plist",
+            )
             self.menu_file = None
         else:
             self.data_dir = os.path.expanduser("~/.local/share/gamma-slider")
@@ -124,6 +141,42 @@ def _linux_desktop_files():
     )
 
 
+def _macos_program_arguments():
+    if is_frozen():
+        return [os.path.abspath(sys.executable)]
+    return [os.path.abspath(sys.executable), os.path.abspath(sys.argv[0])]
+
+
+def _write_macos_launch_agent():
+    from xml.sax.saxutils import escape
+
+    arg_xml = "".join(
+        "        <string>%s</string>\n" % escape(a) for a in _macos_program_arguments()
+    )
+    body = (
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" "
+        "\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+        "<plist version=\"1.0\">\n"
+        "<dict>\n"
+        "    <key>Label</key>\n"
+        "    <string>com.ranidcast.gamma-slider</string>\n"
+        "    <key>ProgramArguments</key>\n"
+        "    <array>\n"
+        "%s"
+        "    </array>\n"
+        "    <key>RunAtLoad</key>\n"
+        "    <true/>\n"
+        "    <key>LimitLoadToSessionType</key>\n"
+        "    <string>Aqua</string>\n"
+        "</dict>\n"
+        "</plist>\n"
+    ) % arg_xml
+    os.makedirs(os.path.dirname(paths.autostart_file), exist_ok=True)
+    with open(paths.autostart_file, "w") as f:
+        f.write(body)
+
+
 def is_autostart_enabled():
     if is_windows():
         import winreg
@@ -137,6 +190,8 @@ def is_autostart_enabled():
                 winreg.CloseKey(key)
         except OSError:
             return False
+    if is_macos():
+        return bool(paths.autostart_file and os.path.exists(paths.autostart_file))
     return any(p and os.path.exists(p) for p in _linux_desktop_files())
 
 
@@ -154,6 +209,10 @@ def enable_autostart():
             )
         finally:
             winreg.CloseKey(key)
+        log.info("Autostart enabled")
+        return
+    if is_macos():
+        _write_macos_launch_agent()
         log.info("Autostart enabled")
         return
     p_bin = os.path.abspath(sys.argv[0])
@@ -185,6 +244,13 @@ def disable_autostart():
         except OSError:
             pass
         log.info("Autostart removed")
+        return
+    if is_macos():
+        if paths.autostart_file and os.path.exists(paths.autostart_file):
+            os.remove(paths.autostart_file)
+            log.info("Autostart removed: %s", paths.autostart_file)
+        else:
+            log.info("Autostart removed")
         return
     for p in _linux_desktop_files():
         if p and os.path.exists(p):

@@ -52,4 +52,15 @@ sha256sum <release-files>
 unzip -t <zip-files>
 ```
 
-The same source revision must be used for the source ZIP, Debian package, RPM package, and Arch package.
+The same source revision must be used for the source ZIP, Debian package, RPM package, Arch package, Windows ZIP, and macOS DMG.
+
+## macOS
+
+Requirements: macOS, Python 3, PyQt5, PyInstaller.
+
+```bash
+python3 packaging/macos/make_icns.py
+./packaging/macos/build-dmg.sh 1.2.0
+```
+
+The DMG is written to the repository root as `gamma-slider-macos-<tag>.dmg`. GitHub Actions uses the same layout on `macos-latest` (Apple Silicon). Do not attempt this build on Linux.

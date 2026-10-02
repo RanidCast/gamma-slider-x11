@@ -2,11 +2,11 @@
 
 ### [English]([https://github.com/RanidCast/gamma-slider-x11/blob/main/README.md](https://github.com/RanidCast/gamma-slider-x11/tree/dev?tab=readme-ov-file#)) | [Русский](https://github.com/RanidCast/gamma-slider-x11/blob/main/README_RU.md)
 
-A small multi-platform tray utility for changing screen color temperature on Linux/X11 and Windows.
+A small multi-platform tray utility for changing screen color temperature on Linux/X11, Windows, and macOS.
 
 It is a lightweight GUI wrapper around a tiny bundled X11/RandR gamma engine. The app was made for quick personal use from the system tray: click the tray icon, move the slider, and the screen temperature changes immediately.
 
-> Linux support remains X11-only. Wayland does not expose the same RandR gamma controls to regular desktop applications, so the Linux backend is intentionally limited to X11 sessions. Windows uses a separate GDI backend.
+> Linux support remains X11-only. Wayland does not expose the same RandR gamma controls to regular desktop applications, so the Linux backend is intentionally limited to X11 sessions. Windows uses a separate GDI backend. macOS uses CoreGraphics display transfer tables.
 
 ## Screenshot
 
@@ -50,7 +50,25 @@ Turn off Windows Night Light. HDR and some NVIDIA drivers ignore `SetDeviceGamma
 
 The repository name still says `x11` for historical reasons. Windows uses a separate GDI gamma backend.
 
-The three color modes are available on both supported platforms. They affect the generated color ramp; the platform-specific backend only applies that ramp to the display.
+The three color modes are available on all supported platforms. They affect the generated color ramp; the platform-specific backend only applies that ramp to the display.
+
+## macOS
+
+Download `gamma-slider-macos-<ver>.dmg` from GitHub Releases (or the macOS workflow artifact). Open the disk image and drag **Gamma Slider** to Applications.
+
+The GitHub build targets Apple Silicon (`arm64`). Intel Macs are not covered by that DMG.
+
+The app is not notarized. On first launch use right-click → Open, or:
+
+```bash
+xattr -cr "/Applications/Gamma Slider.app"
+```
+
+Turn off Night Shift and True Tone. HDR displays may ignore gamma tables, so the slider can have no effect.
+
+Per-user autostart is a LaunchAgent created from the application menu. Administrator rights are not required.
+
+Running from source needs Python 3 and PyQt5 (or PyQt6).
 
 ## Install
 
@@ -92,6 +110,7 @@ Prebuilt release files are attached in GitHub Releases:
 - `gamma-slider-x11_1.1.0_all.deb` for Debian/Ubuntu/Mint
 - `gamma-slider-x11-1.1.0-1.noarch.rpm` for Fedora/RPM-based distros
 - `gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst` for Arch
+- `gamma-slider-macos-<ver>.dmg` for macOS (Apple Silicon)
 
 Install the packages directly:
 
@@ -138,5 +157,7 @@ Logs are stored in:
 ```text
 ~/.local/share/gamma-slider/gamma_slider.log
 ```
+
+On macOS, config is `~/Library/Application Support/gamma-slider/gamma_slider.conf` and logs are `~/Library/Logs/gamma-slider/gamma_slider.log`.
 
 The app has been tested on KDE/Plasma, Cinnamon, and Xfce under X11.

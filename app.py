@@ -187,6 +187,9 @@ def create_backend():
     if sys.platform == "win32":
         from backend_win32 import Win32Backend
         return Win32Backend()
+    if sys.platform == "darwin":
+        from backend_macos import MacOSBackend
+        return MacOSBackend()
     from backend_linux import LinuxBackend
     backend = LinuxBackend(paths.engine)
     backend.unpack()
@@ -426,7 +429,7 @@ class PopupSlider(QWidget):
             mode = self.s.get('color_mode', 0)
         try:
             ok = self.tray_parent.backend.apply(temp, gamma, mode)
-            if not ok and sys.platform == "win32":
+            if not ok and sys.platform in ("win32", "darwin"):
                 self.tray_parent.warn_ramp_rejected()
         except Exception as e:
             log.error(f"apply_engine: {e}")
@@ -569,7 +572,7 @@ class TrayApp(QObject):
         try:
             self.tray.showMessage(
                 "Gamma Slider",
-                "Display driver rejected the gamma ramp. Disable Night Light / HDR and try again.",
+                "Display driver rejected the gamma ramp. Disable Night Light / Night Shift / HDR and try again.",
                 _TRAY_WARNING,
                 8000,
             )

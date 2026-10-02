@@ -14,7 +14,8 @@
 - Linux supports X11 only. Do not claim Wayland support.
 - Windows builds are produced on Windows or by the GitHub Actions workflow in `.github/workflows/windows-release.yml`.
 - The Windows build is an onedir PyInstaller build. Keep `gamma-slider.exe` together with its `_internal` directory.
-- The Windows backend is `backend_win32.py`; the Linux backend is `backend_linux.py`.
+- macOS builds are produced on macOS or by `.github/workflows/macos-release.yml`. The deliverable is a DMG containing `Gamma Slider.app`.
+- The Windows backend is `backend_win32.py`; the Linux backend is `backend_linux.py`; the macOS backend is `backend_macos.py`.
 
 ## Before editing
 
@@ -28,7 +29,7 @@
 For Python source changes, run:
 
 ```bash
-python3 -m py_compile app.py backend_linux.py backend_win32.py gamma_color.py platform_support.py
+python3 -m py_compile app.py backend_linux.py backend_win32.py backend_macos.py gamma_color.py platform_support.py
 ```
 
 Run the project tests when the test runner is available:
@@ -63,7 +64,7 @@ Release work:
 2. Validate Linux source and package metadata.
 3. Create an annotated version tag such as `v1.2.0` only after the source is ready.
 4. Push the branch and tag: `git push origin main v1.2.0`.
-5. Let the Windows workflow build and attach the Windows ZIP.
+5. Let the Windows and macOS workflows build and attach the Windows ZIP and macOS DMG.
 6. Build and verify Linux packages, then attach the Debian, RPM, Arch, source, and checksum files to the same GitHub Release.
 7. Add a release description listing changes, platform requirements, assets, and known limitations.
 

@@ -13,6 +13,9 @@ packaging/aur/pkg/
 Release/
 
 .DS_Store
+gamma-slider.icns
+*.dmg
+packaging/macos/GammaSlider.iconset/
 
 uninstall.sh
 appComment.py

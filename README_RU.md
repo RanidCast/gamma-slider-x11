@@ -2,11 +2,11 @@
 
 ### [English](https://github.com/RanidCast/gamma-slider-x11/blob/main/README.md) | Русский
 
-Небольшая multiOS-утилита в трее для изменения цветовой температуры экрана в Linux/X11 и Windows.
+Небольшая multiOS-утилита в трее для изменения цветовой температуры экрана в Linux/X11, Windows и macOS.
 
 Это легкая GUI-обвязка вокруг маленького встроенного X11/RandR gamma engine. Приложение сделано для быстрого управления из системного трея: нажал на значок, подвигал слайдер, температура экрана сразу изменилась.
 
-> Поддержка Linux по-прежнему рассчитана только на X11. Wayland не дает обычным приложениям такого же доступа к RandR gamma controls, поэтому Linux-бэкенд сознательно ограничен X11-сессиями. В Windows используется отдельный GDI-бэкенд.
+> Поддержка Linux по-прежнему рассчитана только на X11. Wayland не дает обычным приложениям такого же доступа к RandR gamma controls, поэтому Linux-бэкенд сознательно ограничен X11-сессиями. В Windows используется отдельный GDI-бэкенд. На macOS используются таблицы CoreGraphics.
 
 ## Скриншот
 
@@ -50,7 +50,25 @@ Windows-версия поддерживает автозапуск для тек
 
 Имя репозитория `x11` историческое. На Windows используется отдельный GDI-бэкенд гаммы.
 
-Три режима цвета доступны на обеих поддерживаемых платформах. Они влияют на расчет цветовой таблицы, а платформенный бэкенд только применяет эту таблицу к дисплею.
+Три режима цвета доступны на всех поддерживаемых платформах. Они влияют на расчет цветовой таблицы, а платформенный бэкенд только применяет эту таблицу к дисплею.
+
+## macOS
+
+Скачайте `gamma-slider-macos-<ver>.dmg` из GitHub Releases (или артефакт workflow). Откройте образ и перетащите **Gamma Slider** в Applications.
+
+Сборка с GitHub рассчитана на Apple Silicon (`arm64`). Intel Mac в этот DMG не входит.
+
+Приложение не нотаризовано. При первом запуске: правый клик → Открыть, либо:
+
+```bash
+xattr -cr "/Applications/Gamma Slider.app"
+```
+
+Выключите Night Shift и True Tone. HDR-дисплеи могут игнорировать gamma-таблицы, тогда слайдер ничего не изменит.
+
+Автозапуск для текущего пользователя — LaunchAgent из меню приложения. Права администратора не нужны.
+
+Запуск из исходников требует Python 3 и PyQt5 (или PyQt6).
 
 ## Установка
 
@@ -92,6 +110,7 @@ python3 app.py
 - `gamma-slider-x11_1.1.0_all.deb` для Debian/Ubuntu/Mint
 - `gamma-slider-x11-1.1.0-1.noarch.rpm` для Fedora/RPM-based дистрибутивов
 - `gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst` для Arch
+- `gamma-slider-macos-<ver>.dmg` для macOS (Apple Silicon)
 
 Пакеты ставятся напрямую:
 
@@ -139,5 +158,7 @@ sudo pacman -U ./gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst
 ```text
 ~/.local/share/gamma-slider/gamma_slider.log
 ```
+
+На macOS конфиг: `~/Library/Application Support/gamma-slider/gamma_slider.conf`, логи: `~/Library/Logs/gamma-slider/gamma_slider.log`.
 
 Приложение проверялось в KDE/Plasma, Cinnamon и Xfce под X11.

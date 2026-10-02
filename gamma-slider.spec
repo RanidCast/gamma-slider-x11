@@ -9,7 +9,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['backend_linux', 'PyQt6'],
+    excludes=['backend_linux', 'backend_macos', 'PyQt6'],
     noarchive=False,
 )
 pyz = PYZ(a.pure)
