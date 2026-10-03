@@ -120,6 +120,23 @@ sudo dnf install ./gamma-slider-x11-1.1.0-1.noarch.rpm
 sudo pacman -U ./gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst
 ```
 
+## Hotkeys and CLI
+
+Default chords are `Ctrl+Alt+PgUp` (warmer, +100 K) and `Ctrl+Alt+PgDown` (cooler, −100 K). They change temperature only while the effect is enabled and Auto is off.
+
+A second instance sends one command to the running app:
+
+```bash
+python3 app.py --warmer
+python3 app.py --cooler
+python3 app.py --toggle
+python3 app.py --temp 4000
+```
+
+GNOME and Wayland will not let the app grab those keys. Bind the same commands in the system keyboard settings. The Settings page shows the exact argv for this install, not a desktop-file name. Middle-click toggles the effect only when Qt receives `MiddleClick`; on GNOME AppIndicator that event often never arrives, so middle-click stays the menu workaround below.
+
+Tray-icon wheel and per-monitor temperature are not in this version. Preset buttons (3000 / 4000 / 6500) turn Auto off and apply that temperature. Schedule times are edited in Settings.
+
 ## GNOME Desktop Known Issues
 
 If you are running the GNOME desktop environment, please note that GNOME has native restrictions regarding the system tray:
