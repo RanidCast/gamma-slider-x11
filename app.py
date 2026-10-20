@@ -4,9 +4,19 @@ import os
 import logging
 import ctypes
 import ctypes.util
+import json
+import subprocess
+import threading
 import time
 import queue
 from datetime import datetime
+
+if (
+    os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland"
+    and os.environ.get("DISPLAY")
+    and not os.environ.get("QT_QPA_PLATFORM")
+):
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 from platform_support import (
     paths,
@@ -27,7 +37,7 @@ try:
         QSpinBox, QTimeEdit, QScrollArea, QFrame, QAbstractSpinBox, QSizePolicy,
     )
     from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QCursor
-    from PyQt5.QtCore import Qt, QObject, QTimer, QEvent, QTime, QAbstractNativeEventFilter
+    from PyQt5.QtCore import Qt, QObject, QTimer, QEvent, QTime, pyqtSignal
     QT_VERSION = 5
 
     _LEFT_BUTTON    = Qt.LeftButton
@@ -59,6 +69,8 @@ try:
     _SCROLL_OFF     = Qt.ScrollBarAlwaysOff
     _TEXT_SELECT    = Qt.TextSelectableByMouse
     _WA_DONT_SHOW   = Qt.WA_DontShowOnScreen
+    _WA_QUIT_ON_CLOSE = Qt.WA_QuitOnClose
+    _APP_ACTIVE     = Qt.ApplicationActive
 
     def _qt_key(name):
         return getattr(Qt, name)
@@ -70,7 +82,7 @@ except ImportError:
         QSpinBox, QTimeEdit, QScrollArea, QFrame, QAbstractSpinBox, QSizePolicy,
     )
     from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QCursor
-    from PyQt6.QtCore import Qt, QObject, QTimer, QEvent, QTime, QAbstractNativeEventFilter
+    from PyQt6.QtCore import Qt, QObject, QTimer, QEvent, QTime, pyqtSignal
     QT_VERSION = 6
 
     _LEFT_BUTTON    = Qt.MouseButton.LeftButton
@@ -102,6 +114,8 @@ except ImportError:
     _SCROLL_OFF     = Qt.ScrollBarPolicy.ScrollBarAlwaysOff
     _TEXT_SELECT    = Qt.TextInteractionFlag.TextSelectableByMouse
     _WA_DONT_SHOW   = Qt.WidgetAttribute.WA_DontShowOnScreen
+    _WA_QUIT_ON_CLOSE = Qt.WidgetAttribute.WA_QuitOnClose
+    _APP_ACTIVE     = Qt.ApplicationState.ApplicationActive
 
     def _qt_key(name):
         return getattr(Qt.Key, name)
@@ -109,8 +123,8 @@ except ImportError:
 log = setup_logging()
 
 LANGUAGES = {
-    "en": {"name": "English",   "active": "Enabled",    "title": "Color Temp",     "show_label": "Tray Value",   "auto": "Auto",      "contrast": "Visibility", "quit": "Exit",    "as_on": "Autostart: ON",         "as_off": "Autostart: OFF", "mode_classic": "Classic",     "mode_aggressive": "Aggressive",     "mode_mathematical": "Mathematical", "mode_label": "Color mode"},
-    "ru": {"name": "Русский",   "active": "Включено",   "title": "Температура",    "show_label": "В трее",       "auto": "Авто",      "contrast": "Видимость",  "quit": "Выход",   "as_on": "Автозапуск: ВКЛ",       "as_off": "Автозапуск: ВЫКЛ", "mode_classic": "Классический", "mode_aggressive": "Агрессивный",     "mode_mathematical": "Математический", "mode_label": "Режим цвета"},
+    "en": {"name": "English",   "active": "Enabled",    "title": "Color Temp",     "show_label": "Tray Value",   "auto": "Auto",      "contrast": "Visibility", "quit": "Exit",    "as_on": "Autostart: ON",         "as_off": "Autostart: OFF", "mode_classic": "Classic",     "mode_aggressive": "Aggressive",     "mode_mathematical": "Mathematical", "mode_label": "Color mode", "wayland_hint": "KDE stores global shortcuts. Select a key field and press the desired chord."},
+    "ru": {"name": "Русский",   "active": "Включено",   "title": "Температура",    "show_label": "В трее",       "auto": "Авто",      "contrast": "Видимость",  "quit": "Выход",   "as_on": "Автозапуск: ВКЛ",       "as_off": "Автозапуск: ВЫКЛ", "mode_classic": "Классический", "mode_aggressive": "Агрессивный",     "mode_mathematical": "Математический", "mode_label": "Режим цвета", "wayland_hint": "Глобальные сочетания сохраняет KDE. Выберите поле клавиши и нажмите нужное сочетание."},
     "zh": {"name": "中文",       "active": "已启用",      "title": "色温",           "show_label": "托盘数值",      "auto": "自动",      "contrast": "可见性",      "quit": "退出",    "as_on": "自启动: 开启",           "as_off": "自启动: 关闭", "mode_classic": "经典",      "mode_aggressive": "激进",          "mode_mathematical": "数学", "mode_label": "颜色模式"},
     "es": {"name": "Español",   "active": "Activado",   "title": "Temp. de color", "show_label": "En bandeja",   "auto": "Auto",      "contrast": "Visibilidad","quit": "Salir",   "as_on": "Inicio auto: ON",        "as_off": "Inicio auto: OFF", "mode_classic": "Clásico",   "mode_aggressive": "Agresivo",       "mode_mathematical": "Matemático", "mode_label": "Modo de color"},
     "hi": {"name": "हिन्दी",    "active": "सक्रिय",     "title": "रंग तापमान",    "show_label": "ट्रे मान",    "auto": "ऑटो",      "contrast": "दृश्यता",   "quit": "निकास",  "as_on": "ऑटोस्टार्ट: चालू",     "as_off": "ऑटोस्टार्ट: बंद", "mode_classic": "क्लासिक",  "mode_aggressive": "आक्रामक",       "mode_mathematical": "गणितीय", "mode_label": "रंग मोड"},
@@ -160,7 +174,8 @@ DEFAULTS = {
     "night_temp": 3000,
 }
 TEMP_MIN = 1000
-TEMP_MAX = 10000
+WAYLAND_SESSION = is_linux() and os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland"
+TEMP_MAX = 6500 if WAYLAND_SESSION else 10000
 POPUP_W = 320
 POPUP_H = 200
 SMOOTH_STEP = 100
@@ -288,53 +303,59 @@ def format_chord(event):
     return "+".join(parts)
 
 
-def _native_pass():
-    if QT_VERSION == 6:
-        return False, 0
-    return False
+_crash_log_fp = None
 
 
-def _native_handled():
-    if QT_VERSION == 6:
-        return True, 0
-    return True
+def _install_crash_logging():
+    global _crash_log_fp
+    import faulthandler
+    paths.ensure()
+    try:
+        _crash_log_fp = open(paths.log_file, "ab")
+        faulthandler.enable(_crash_log_fp, all_threads=True)
+    except Exception:
+        _crash_log_fp = None
+
+    def _hook(exc_type, exc, tb):
+        log.error("Unhandled exception", exc_info=(exc_type, exc, tb))
+        if _crash_log_fp:
+            try:
+                _crash_log_fp.flush()
+            except Exception:
+                pass
+
+    sys.excepthook = _hook
 
 
-class _WinMsg(ctypes.Structure):
-    _fields_ = [
-        ("hwnd", ctypes.c_void_p),
-        ("message", ctypes.c_uint),
-        ("wParam", ctypes.c_size_t),
-        ("lParam", ctypes.c_ssize_t),
-        ("time", ctypes.c_ulong),
-        ("pt_x", ctypes.c_long),
-        ("pt_y", ctypes.c_long),
-    ]
-
-
-class _WinHotkeyFilter(QAbstractNativeEventFilter):
+class _HotkeyHost(QWidget):
     def __init__(self, callback):
         super().__init__()
         self._callback = callback
+        self.setAttribute(_WA_DONT_SHOW)
+        self.setAttribute(_WA_QUIT_ON_CLOSE, False)
 
-    def nativeEventFilter(self, eventType, message):
+    def nativeEvent(self, eventType, message):
         try:
             kind = bytes(eventType)
+            if b"windows_" in kind and message:
+                from ctypes import wintypes
+                addr = int(message)
+                if addr:
+                    msg = wintypes.MSG.from_address(addr)
+                    hotkey_id = int(msg.wParam)
+                    if msg.message == 0x0312 and hotkey_id in (
+                        hotkeys.HOTKEY_UP, hotkeys.HOTKEY_DOWN,
+                    ):
+                        self._callback(hotkey_id)
+                        return True, 0
         except Exception:
-            kind = b""
-        if b"windows_generic_MSG" not in kind and b"windows_dispatcher_MSG" not in kind:
-            return _native_pass()
-        if not message:
-            return _native_pass()
-        try:
-            msg = ctypes.cast(int(message), ctypes.POINTER(_WinMsg)).contents
-        except Exception:
-            return _native_pass()
-        hotkey_id = int(msg.wParam)
-        if msg.message == 0x0312 and hotkey_id in (hotkeys.HOTKEY_UP, hotkeys.HOTKEY_DOWN):
-            self._callback(hotkey_id)
-            return _native_handled()
-        return _native_pass()
+            log.exception("Windows hotkey nativeEvent failed")
+        result = super().nativeEvent(eventType, message)
+        if result is None:
+            return False, 0
+        if isinstance(result, tuple):
+            return result
+        return bool(result), 0
 
 BUTTON1_MASK = 1 << 8
 
@@ -398,6 +419,32 @@ class X11Pointer:
 
         return root_x.value, root_y.value, mask.value
 
+
+VK_LBUTTON = 0x01
+VK_RBUTTON = 0x02
+SM_SWAPBUTTON = 23
+_KEY_DOWN = 0x8000
+
+
+class Win32Pointer:
+    def __init__(self):
+        self.user32 = None
+        try:
+            user32 = ctypes.WinDLL("user32", use_last_error=True)
+            user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
+            user32.GetAsyncKeyState.restype = ctypes.c_short
+            user32.GetSystemMetrics.argtypes = [ctypes.c_int]
+            user32.GetSystemMetrics.restype = ctypes.c_int
+            self.user32 = user32
+        except Exception as e:
+            log.warning(f"Win32 pointer init failed: {e}")
+
+    def left_pressed(self):
+        if not self.user32:
+            return None
+        vk = VK_RBUTTON if self.user32.GetSystemMetrics(SM_SWAPBUTTON) else VK_LBUTTON
+        return bool(self.user32.GetAsyncKeyState(vk) & _KEY_DOWN)
+
 def save_settings(s):
     try:
         with open(paths.config_file, "w") as f:
@@ -431,7 +478,9 @@ def create_backend():
     if sys.platform == "darwin":
         from backend_macos import MacOSBackend
         return MacOSBackend()
-    from backend_linux import LinuxBackend
+    from backend_linux import LinuxBackend, WaylandBackend
+    if WAYLAND_SESSION:
+        return WaylandBackend()
     backend = LinuxBackend(paths.engine)
     backend.unpack()
     return backend
@@ -453,6 +502,8 @@ class JumpSlider(QSlider):
 
 
 class PopupSlider(QWidget):
+    _plasma_tray_ready = pyqtSignal(object)
+
     def __init__(self, settings, tray_parent):
         super().__init__()
         self.tray_parent = tray_parent
@@ -465,6 +516,7 @@ class PopupSlider(QWidget):
 
         self.setObjectName("popup")
         self.setWindowFlags(_POPUP | _FRAMELESS | _STAYS_ON_TOP)
+        self.setAttribute(_WA_QUIT_ON_CLOSE, False)
         self.setFixedSize(POPUP_W, POPUP_H)
         self.setStyleSheet("""
             QWidget { background-color: #1e1e1e; color: #ffffff; border: 1px solid #444; border-radius: 8px; }
@@ -502,7 +554,14 @@ class PopupSlider(QWidget):
         self._pending_outside_click = False
         self._ignore_outside_click_until = 0.0
         self._suppress_tray_show_until = 0.0
+        self._plasma_tray_cache = None
+        self._plasma_tray_querying = False
+        self._plasma_tray_reposition = False
+        self._plasma_tray_ready.connect(self._plasma_tray_query_done)
+        self._application = QApplication.instance()
+        self._application.applicationStateChanged.connect(self._application_state_changed)
         self.x11_pointer = X11Pointer() if is_linux() else None
+        self.win_pointer = Win32Pointer() if sys.platform == "win32" else None
 
         self.retranslate_ui()
         self.tray_parent.update_icon(self._display_temp(), self.s["show_label"])
@@ -515,15 +574,10 @@ class PopupSlider(QWidget):
 
         QApplication.instance().installEventFilter(self)
 
-        if is_linux() and os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland":
-            warning_label = QLabel("⚠ Wayland detected — this app requires an X11 session.\nGamma changes will not work.")
-            warning_label.setStyleSheet("color: #ff6b6b; font-weight: bold; font-size: 11px; padding: 8px; background: #331111; border-radius: 4px;")
-            warning_label.setWordWrap(True)
-            self.layout().insertWidget(0, warning_label)
-
-            for wtype in (QSlider, QPushButton, QCheckBox, QComboBox, QAbstractSpinBox):
-                for widget in self.findChildren(wtype):
-                    widget.setEnabled(False)
+        if WAYLAND_SESSION:
+            for widget in self.mode_row_widgets + self.contrast_row_widgets:
+                widget.hide()
+            QTimer.singleShot(0, self._refresh_plasma_tray_geometry)
 
     def _label(self, key):
         label = QLabel()
@@ -566,6 +620,7 @@ class PopupSlider(QWidget):
         mode_row.addWidget(self.mode_label)
         mode_row.addWidget(self.mode_box)
         layout.addLayout(mode_row)
+        self.mode_row_widgets = (self.mode_label, self.mode_box)
 
         self.slider = JumpSlider(_HORIZONTAL)
         self.slider.setRange(TEMP_MIN, TEMP_MAX)
@@ -607,6 +662,7 @@ class PopupSlider(QWidget):
         bot.addStretch()
         bot.addWidget(self.lang_box)
         layout.addLayout(bot)
+        self.contrast_row_widgets = (self.check_contrast,)
 
         bottom_btns = QHBoxLayout()
         self.btn_as = QPushButton()
@@ -664,6 +720,11 @@ class PopupSlider(QWidget):
         self.hint_label.setTextInteractionFlags(_TEXT_SELECT)
         self.hint_label.setStyleSheet("border: none; color: #bbbbbb; font-size: 11px;")
         layout.addWidget(self.hint_label)
+
+        self.btn_kde_shortcuts = QPushButton("Configure shortcuts in KDE / Настроить сочетания в KDE")
+        self.btn_kde_shortcuts.clicked.connect(self.tray_parent.configure_kde_shortcuts)
+        self.btn_kde_shortcuts.setVisible(WAYLAND_SESSION)
+        layout.addWidget(self.btn_kde_shortcuts)
 
         layout.addWidget(self._label("schedule"))
         self.time_dawn_start = self._time_edit(self.s.get("dawn_start", DEFAULTS["dawn_start"]))
@@ -764,12 +825,15 @@ class PopupSlider(QWidget):
     def apply_preset(self, temp):
         if not self.s.get("enabled"):
             return
+        auto_was_enabled = bool(self.s.get("auto"))
         if self.check_auto.isChecked():
             self.check_auto.blockSignals(True)
             self.check_auto.setChecked(False)
             self.check_auto.blockSignals(False)
             self.s["auto"] = 0
         self.apply_temperature(temp)
+        if auto_was_enabled:
+            self.tray_parent.rebind_hotkeys()
         self.retranslate_ui()
 
     def toggle_enabled(self):
@@ -839,6 +903,8 @@ class PopupSlider(QWidget):
             widget.setText(lang[key])
         self._refresh_hint(lang)
         self._refresh_hotkey_buttons()
+        if WAYLAND_SESSION:
+            self.hint_label.setText(lang.get("wayland_hint", LANGUAGES["en"]["wayland_hint"]))
 
         current = self.mode_box.currentIndex()
         self.mode_box.blockSignals(True)
@@ -853,8 +919,9 @@ class PopupSlider(QWidget):
 
         active = self.check_enabled.isChecked() and not self.check_auto.isChecked()
         self.slider.setEnabled(active)
-        self.mode_box.setEnabled(active)
-        self.check_contrast.setEnabled(active)
+        self.mode_label.setEnabled(active and not WAYLAND_SESSION)
+        self.mode_box.setEnabled(active and not WAYLAND_SESSION)
+        self.check_contrast.setEnabled(active and not WAYLAND_SESSION)
         for button in self.preset_buttons:
             button.setEnabled(self.check_enabled.isChecked())
 
@@ -884,6 +951,7 @@ class PopupSlider(QWidget):
         else:
             self.sync()
         save_settings(self.s)
+        self.tray_parent.rebind_hotkeys()
         self.retranslate_ui()
 
     def toggle_auto(self, state):
@@ -898,6 +966,7 @@ class PopupSlider(QWidget):
         else:
             self.sync()
         save_settings(self.s)
+        self.tray_parent.rebind_hotkeys()
         self.retranslate_ui()
 
     def change_lang(self, name):
@@ -1006,7 +1075,7 @@ class PopupSlider(QWidget):
         self.s[key] = chord
         save_settings(self.s)
         self._refresh_hotkey_buttons()
-        self.tray_parent.rebind_hotkeys()
+        self.tray_parent.rebind_hotkeys(force=WAYLAND_SESSION)
         event.accept()
 
     def wheelEvent(self, event):
@@ -1049,17 +1118,135 @@ class PopupSlider(QWidget):
     def show_at_cursor(self):
         self.stack.setCurrentIndex(0)
         self.setFixedSize(POPUP_W, POPUP_H)
-        pos = QCursor.pos()
-        x = pos.x() - (POPUP_W // 2)
-        y = pos.y() - POPUP_H - 20
-        screen = _screen_at(pos)
-        if screen is not None:
-            geo = screen.availableGeometry()
-            x = min(max(x, geo.x()), geo.x() + geo.width() - POPUP_W)
-            y = min(max(y, geo.y()), geo.y() + geo.height() - POPUP_H)
+        plasma_tray = self._plasma_tray_cache if WAYLAND_SESSION else None
+        if WAYLAND_SESSION:
+            self._refresh_plasma_tray_geometry(reposition=True)
+        x, y = self._popup_xy(plasma_tray)
         self.move(x, y)
+        log.info(
+            "Popup placement: platform=%s cursor=%s,%s qt_tray=%s plasma_tray=%s requested=%s,%s",
+            QApplication.platformName(), QCursor.pos().x(), QCursor.pos().y(),
+            self.tray_parent.tray.geometry().getRect(), plasma_tray, x, y,
+        )
         self.ignore_outside_clicks()
         self._show_and_raise()
+        QTimer.singleShot(0, self._nudge_popup)
+        QTimer.singleShot(150, self._log_popup_geometry)
+
+    def _nudge_popup(self):
+        if self.isVisible():
+            x, y = self._popup_xy(self._plasma_tray_cache if WAYLAND_SESSION else None)
+            self.move(x, y)
+
+    def _popup_xy(self, plasma_tray):
+        pos = QCursor.pos()
+        screen = _screen_at(pos)
+        tray_geometry = self.tray_parent.tray.geometry()
+        if plasma_tray:
+            screen_index = plasma_tray["screen"]
+            screens = QApplication.screens()
+            if 0 <= screen_index < len(screens):
+                screen = screens[screen_index]
+            screen = screen or QApplication.primaryScreen()
+            area = screen.geometry()
+            panel_height = plasma_tray["panelHeight"]
+            tray_x = area.x() + plasma_tray["x"]
+            tray_y = area.y() + plasma_tray["y"]
+            location = plasma_tray["location"]
+            if location == "bottom":
+                tray_y += area.height() - panel_height
+            elif location == "right":
+                tray_x += area.width() - panel_height
+            anchor = (tray_x, tray_y, plasma_tray["width"], plasma_tray["height"])
+        elif tray_geometry.isValid():
+            screen = QApplication.screenAt(tray_geometry.center()) or screen
+            anchor = (tray_geometry.x(), tray_geometry.y(), tray_geometry.width(), tray_geometry.height())
+        elif WAYLAND_SESSION:
+            screen = screen or QApplication.primaryScreen()
+            anchor = None
+        else:
+            anchor = (pos.x(), pos.y(), 1, 1)
+        if screen is not None:
+            geo = screen.availableGeometry()
+            if anchor is None:
+                x = geo.right() - POPUP_W + 1
+                y = geo.bottom() - POPUP_H + 1
+            else:
+                anchor_x, anchor_y, anchor_width, anchor_height = anchor
+                location = plasma_tray["location"] if plasma_tray else "bottom"
+                if location == "top":
+                    x = anchor_x + (anchor_width - POPUP_W) // 2
+                    y = anchor_y + anchor_height + 8
+                elif location == "left":
+                    x = anchor_x + anchor_width + 8
+                    y = anchor_y + (anchor_height - POPUP_H) // 2
+                elif location == "right":
+                    x = anchor_x - POPUP_W - 8
+                    y = anchor_y + (anchor_height - POPUP_H) // 2
+                else:
+                    x = anchor_x + (anchor_width - POPUP_W) // 2
+                    y = anchor_y - POPUP_H - 8
+            x = min(max(x, geo.x()), geo.x() + geo.width() - POPUP_W)
+            y = min(max(y, geo.y()), geo.y() + geo.height() - POPUP_H)
+        else:
+            x, y = pos.x() - POPUP_W // 2, pos.y() - POPUP_H - 20
+        return x, y
+
+    def _log_popup_geometry(self):
+        if self.isVisible():
+            log.info("Popup shown: pos=%s,%s geometry=%s", self.x(), self.y(), self.geometry().getRect())
+
+    def _refresh_plasma_tray_geometry(self, reposition=False):
+        if not WAYLAND_SESSION:
+            return
+        if reposition:
+            self._plasma_tray_reposition = True
+        if self._plasma_tray_querying:
+            return
+        self._plasma_tray_querying = True
+        worker = threading.Thread(
+            target=self._plasma_tray_query_worker, name="plasma-tray", daemon=True,
+        )
+        worker.start()
+
+    def _plasma_tray_query_worker(self):
+        self._plasma_tray_ready.emit(self._query_plasma_tray_geometry())
+
+    def _plasma_tray_query_done(self, geometry):
+        self._plasma_tray_querying = False
+        reposition = self._plasma_tray_reposition
+        self._plasma_tray_reposition = False
+        if geometry:
+            self._plasma_tray_cache = geometry
+        if reposition and self.isVisible() and self._plasma_tray_cache:
+            x, y = self._popup_xy(self._plasma_tray_cache)
+            self.move(x, y)
+
+    def _query_plasma_tray_geometry(self):
+        script = (
+            'var ps=panels(); for(var i=0;i<ps.length;i++){var p=ps[i]; '
+            'for(var j=0;j<p.widgetIds.length;j++){var w=p.widgetById(p.widgetIds[j]); '
+            'if(w.type==="org.kde.plasma.systemtray"){var g=w.geometry; '
+            'print(JSON.stringify({x:g.x,y:g.y,width:g.width,height:g.height,'
+            'location:p.location,screen:p.screen,panelHeight:p.height}));}}}'
+        )
+        try:
+            result = subprocess.run(
+                ["qdbus6", "org.kde.plasmashell", "/PlasmaShell",
+                 "org.kde.PlasmaShell.evaluateScript", script],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                text=True, timeout=0.5, check=True,
+            )
+            for line in result.stdout.splitlines():
+                try:
+                    geometry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if geometry.get("width", 0) > 0 and geometry.get("height", 0) > 0:
+                    return geometry
+        except (OSError, subprocess.SubprocessError) as exc:
+            log.debug("Cannot query Plasma tray geometry: %s", exc)
+        return None
 
     def ignore_outside_clicks(self, ms=350):
         self._pending_outside_click = False
@@ -1082,14 +1269,19 @@ class PopupSlider(QWidget):
         self.activateWindow()
         self.outside_click_timer.start()
 
+    def _left_button_pressed(self):
+        if self.x11_pointer:
+            x11_state = self.x11_pointer.state()
+            if x11_state:
+                return bool(x11_state[2] & BUTTON1_MASK)
+        if self.win_pointer:
+            pressed = self.win_pointer.left_pressed()
+            if pressed is not None:
+                return pressed
+        return bool(QApplication.mouseButtons() & _LEFT_BUTTON)
+
     def _watch_outside_click(self):
-        x11_state = self.x11_pointer.state() if self.x11_pointer else None
-        if x11_state:
-            _, _, mask = x11_state
-            left_pressed = bool(mask & BUTTON1_MASK)
-        else:
-            buttons = QApplication.mouseButtons()
-            left_pressed = bool(buttons & _LEFT_BUTTON)
+        left_pressed = self._left_button_pressed()
 
         now = time.monotonic()
         outside = not self._contains_global_pos(QCursor.pos())
@@ -1113,6 +1305,17 @@ class PopupSlider(QWidget):
             self.hide()
         else:
             self._pending_outside_click = False
+
+    def _application_state_changed(self, state):
+        if state != _APP_ACTIVE and self.isVisible():
+            QTimer.singleShot(120, self._hide_if_application_inactive)
+
+    def _hide_if_application_inactive(self):
+        if not self.isVisible() or self._application.applicationState() == _APP_ACTIVE:
+            return
+        if QApplication.activePopupWidget() is not None:
+            return
+        self.hide_from_tray()
 
     def _contains_global_pos(self, pos):
         widget = QApplication.widgetAt(pos)
@@ -1140,16 +1343,18 @@ class PopupSlider(QWidget):
         return super().eventFilter(obj, event)
 
 class TrayApp(QObject):
-    def __init__(self, startup_command=None):
+    def __init__(self, app, startup_command=None):
         super().__init__()
-        self.app = QApplication(sys.argv)
+        self.app = app
         self.app.setQuitOnLastWindowClosed(False)
         self.app.aboutToQuit.connect(self.on_exit)
         self._ramp_warned = False
         self._hotkey_hwnd = None
-        self._hotkey_filter = None
 
         self.settings = load_settings()
+        self.settings["temp"] = snap_temp(self.settings.get("temp", DEFAULTS["temp"]))
+        self.settings["day_temp"] = snap_temp(self.settings.get("day_temp", DEFAULTS["day_temp"]))
+        self.settings["night_temp"] = snap_temp(self.settings.get("night_temp", DEFAULTS["night_temp"]))
         if (
             startup_command
             and startup_command.startswith("temp ")
@@ -1168,21 +1373,29 @@ class TrayApp(QObject):
 
         self.ipc = IpcServer(queue.Queue())
         self.grabber = hotkeys.HotkeyGrabber()
+        self.kde_hotkeys = None
         if sys.platform == "win32":
-            self._hotkey_host = QWidget()
-            self._hotkey_host.setAttribute(_WA_DONT_SHOW)
+            self._hotkey_host = _HotkeyHost(self._on_win_hotkey)
             self._hotkey_hwnd = int(self._hotkey_host.winId())
-            self._hotkey_filter = _WinHotkeyFilter(self._on_win_hotkey)
-            self.app.installNativeEventFilter(self._hotkey_filter)
 
         self.popup = PopupSlider(self.settings, self)
         self.tray.activated.connect(self.clicked)
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            log.warning("System tray is not available")
         self.tray.show()
         self.ipc.start()
-        self.rebind_hotkeys()
         self._bridge = QTimer(self)
         self._bridge.timeout.connect(self._drain_bridge)
         self._bridge.start(50)
+        self._mac_held_hotkey = None
+        self._mac_repeat_timer = QTimer(self)
+        self._mac_repeat_timer.setInterval(220)
+        self._mac_repeat_timer.timeout.connect(self._repeat_mac_hotkey)
+        log.info("Qt platform: %s", QApplication.platformName())
+        try:
+            self.rebind_hotkeys()
+        except Exception:
+            log.exception("Hotkey bind failed")
         if startup_command:
             QTimer.singleShot(800, lambda: self.popup.handle_command(startup_command))
 
@@ -1194,13 +1407,44 @@ class TrayApp(QObject):
             except Exception as exc:
                 log.warning("UnregisterHotKey failed: %s", exc)
         self.grabber.close()
+        if self.kde_hotkeys is not None:
+            self.kde_hotkeys.close()
         self.ipc.close()
         self.backend.close()
 
-    def rebind_hotkeys(self):
-        enabled = bool(self.settings.get("hotkeys", 1))
+    def rebind_hotkeys(self, force=False):
+        enabled = (
+            bool(self.settings.get("hotkeys", 1))
+            and bool(self.settings.get("enabled", 1))
+            and not bool(self.settings.get("auto", 0))
+        )
+        self._mac_held_hotkey = None
+        self._mac_repeat_timer.stop()
         up = str(self.settings.get("hotkey_up", DEFAULTS["hotkey_up"]))
         down = str(self.settings.get("hotkey_down", DEFAULTS["hotkey_down"]))
+        if WAYLAND_SESSION:
+            if self.kde_hotkeys is None:
+                self.kde_hotkeys = hotkeys.KDEGlobalShortcuts(self.grabber.events)
+            assigned = self.kde_hotkeys.rebind(enabled, up, down, force=force)
+            available = self.kde_hotkeys.available
+            self.popup.check_hotkeys.setEnabled(available)
+            self.popup.btn_hotkey_up.setEnabled(available)
+            self.popup.btn_hotkey_down.setEnabled(available)
+            self.popup.spin_step.setEnabled(available)
+            self.popup.btn_kde_shortcuts.setEnabled(available)
+            if not available:
+                self.popup.hint_label.setText(
+                    "KGlobalAccel unavailable. Install dbus-python and use KDE Plasma."
+                    "\nKGlobalAccel недоступен: нужен dbus-python и KDE Plasma."
+                )
+            if available and enabled:
+                if assigned.get("warmer"):
+                    self.settings["hotkey_up"] = assigned["warmer"]
+                if assigned.get("cooler"):
+                    self.settings["hotkey_down"] = assigned["cooler"]
+                save_settings(self.settings)
+                self.popup._refresh_hotkey_buttons()
+            return assigned
         if sys.platform == "win32" and self._hotkey_hwnd:
             hotkeys.unregister_win(self._hotkey_hwnd)
             if enabled:
@@ -1209,15 +1453,52 @@ class TrayApp(QObject):
             return
         self.grabber.rebind(enabled, up, down)
 
+    def configure_kde_shortcuts(self):
+        try:
+            subprocess.Popen(
+                ["systemsettings", "kcm_keys"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except OSError as exc:
+            log.warning("Cannot open KDE shortcut settings: %s", exc)
+
     def _on_win_hotkey(self, hotkey_id):
+        popup = getattr(self, "popup", None)
+        if popup is None:
+            return
         if hotkey_id == hotkeys.HOTKEY_UP:
-            self.popup.handle_hotkey("up")
+            popup.handle_hotkey("up")
         elif hotkey_id == hotkeys.HOTKEY_DOWN:
-            self.popup.handle_hotkey("down")
+            popup.handle_hotkey("down")
 
     def _drain_bridge(self):
         self._drain(self.ipc.out_queue, self.popup.handle_command)
-        self._drain(self.grabber.events, self.popup.handle_hotkey)
+        self._drain(self.grabber.events, self._handle_grabber_hotkey)
+
+    def _handle_grabber_hotkey(self, event):
+        if isinstance(event, tuple) and event and event[0] == "kde-binding":
+            _, action, sequence = event
+            key = "hotkey_up" if action == "warmer" else "hotkey_down"
+            self.settings[key] = sequence
+            save_settings(self.settings)
+            self.popup._refresh_hotkey_buttons()
+            return
+        if sys.platform == "darwin" and isinstance(event, tuple):
+            action, name = event
+            if action == "pressed":
+                self._mac_held_hotkey = name
+                self.popup.handle_hotkey(name)
+                self._mac_repeat_timer.start()
+            elif action == "released" and self._mac_held_hotkey == name:
+                self._mac_held_hotkey = None
+                self._mac_repeat_timer.stop()
+            return
+        self.popup.handle_hotkey(event)
+
+    def _repeat_mac_hotkey(self):
+        if self._mac_held_hotkey:
+            self.popup.handle_hotkey(self._mac_held_hotkey)
 
     def _drain(self, pending, fn):
         while True:
@@ -1277,16 +1558,30 @@ class TrayApp(QObject):
             self.popup.toggle_enabled()
 
 def main():
-    command = parse_cli(sys.argv[1:])
-    if not acquire_single_instance():
-        if not command:
-            sys.exit(0)
-        if send_command(command):
-            sys.exit(0)
-        print("gamma-slider is not accepting commands", file=sys.stderr)
-        sys.exit(1)
-    tray = TrayApp(command)
-    sys.exit(tray.app.exec())
+    _install_crash_logging()
+    try:
+        command = parse_cli(sys.argv[1:])
+        if not acquire_single_instance():
+            if not command:
+                sys.exit(0)
+            if send_command(command):
+                sys.exit(0)
+            print("gamma-slider is not accepting commands", file=sys.stderr)
+            sys.exit(1)
+        app = QApplication(sys.argv)
+        app.setApplicationName("gamma-slider-x11")
+        app.setDesktopFileName("gamma-slider-x11")
+        app.setQuitOnLastWindowClosed(False)
+        tray = TrayApp(app, command)
+        log.info("entering event loop")
+        for handler in log.handlers:
+            handler.flush()
+        sys.exit(app.exec())
+    except SystemExit:
+        raise
+    except Exception:
+        log.exception("fatal startup error")
+        raise
 
 if __name__ == "__main__":
     main()

@@ -8,13 +8,13 @@ Requirements: `dpkg-deb` and `fakeroot`.
 
 ```bash
 cd packaging/debian
-VERSION=1.1.0 ./build-deb.sh
+VERSION=1.2.0 ./build-deb.sh
 ```
 
 The package is written to `packaging/debian/dist/` and its embedded version can be checked with:
 
 ```bash
-dpkg-deb -f packaging/debian/dist/gamma-slider-x11_1.1.0_all.deb Version
+dpkg-deb -f packaging/debian/dist/gamma-slider-x11_1.2.0_all.deb Version
 ```
 
 ## RPM-based distributions
@@ -23,7 +23,7 @@ Requirements: `rpmbuild` and `zip`.
 
 ```bash
 cd packaging/rpm
-VERSION=1.1.0 ./build-rpm.sh
+VERSION=1.2.0 ./build-rpm.sh
 ```
 
 The RPM and source RPM are written below `packaging/rpm/rpmbuild/`. The script creates its source archive from the current checkout; it does not depend on a stale `Release/` directory.

@@ -91,9 +91,9 @@ git tag --list
 1. Pull the latest `main` and inspect `git status`.
 2. Make the source and documentation changes.
 3. Run Python syntax checks and tests.
-4. Test the Linux installation on an X11 session.
-5. Build or obtain the Windows onedir ZIP and test it on Windows.
-6. Build or obtain the macOS DMG from the macOS workflow and test it on an Apple Silicon Mac.
+4. Test the Linux installation on an X11 session: verify hotkeys while another application has focus, hold a key to verify repeat, and confirm conflicting desktop shortcuts are reported as unavailable.
+5. Build or obtain the Windows onedir ZIP and test it on Windows: hold PgUp/PgDown with Ctrl+Alt to verify repeat behavior, test the hotkeys while another application has focus, including when the active window is on a second monitor, and confirm conflicting chords fail cleanly.
+6. Build or obtain the macOS DMG from the macOS workflow and test it on an Apple Silicon Mac: verify the hotkey works without app focus, repeats while held, and releases when the key is released; also check conflicting chords.
 7. Build Debian, RPM, and Arch packages from the same source revision. Verify their embedded versions.
 8. Create and push an annotated tag, for example `v1.2.0`.
 9. Confirm the GitHub Actions Windows and macOS jobs complete.
@@ -105,7 +105,7 @@ Never publish a file from an old backup simply because its filename has the new 
 
 ## Current packaging note
 
-The Linux package artifacts for `v1.1.0` were built successfully, but the older packaging scripts and their generated files have not yet been migrated into this clean Git clone. Until that migration is done, do not delete the backup folder if another Linux package rebuild is needed. Before the next release, add reviewed Debian, RPM, and Arch build scripts to this repository and commit them so every platform build starts from one source tree.
+Debian and RPM build scripts are maintained in `packaging/`. Their package payload must include the Python modules imported by `app.py`, not only the entry-point script. The Arch PKGBUILD tracks a published source ZIP and its exact SHA256; update both only after the matching release source archive has been generated.
 
 ## Backup and cleanup
 

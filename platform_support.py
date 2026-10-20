@@ -102,6 +102,8 @@ def acquire_single_instance():
             wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR,
         ]
         kernel32.CreateMutexW.restype = wintypes.HANDLE
+        kernel32.SetLastError.argtypes = [wintypes.DWORD]
+        kernel32.SetLastError(0)
         handle = kernel32.CreateMutexW(None, True, "GammaSliderX11")
         _mutex_handle = handle
         if not handle:
@@ -110,12 +112,27 @@ def acquire_single_instance():
 
     import fcntl
 
-    _lock_handle = open("/tmp/gamma_slider.lock", "w")
-    try:
-        fcntl.lockf(_lock_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return True
-    except OSError:
-        return False
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
+    lock_dir = runtime_dir or os.path.expanduser("~/.cache")
+    os.makedirs(lock_dir, exist_ok=True)
+    handles = []
+    for path in (
+        os.path.join(lock_dir, "gamma-slider.lock"),
+        "/tmp/gamma_slider.lock",
+    ):
+        try:
+            handle = open(path, "w")
+            fcntl.lockf(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            for held in handles:
+                try:
+                    held.close()
+                except OSError:
+                    pass
+            return False
+        handles.append(handle)
+    _lock_handle = handles
+    return True
 
 
 def _windows_autostart_command():

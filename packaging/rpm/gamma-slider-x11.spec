@@ -1,5 +1,5 @@
 Name:           gamma-slider-x11
-Version:        %{?version}%{!?version:1.1.0}
+Version:        %{?version}%{!?version:1.2.0}
 Release:        1%{?dist}
 Summary:        Simple X11 tray app for changing screen color temperature
 
@@ -27,6 +27,7 @@ mkdir -p %{buildroot}/usr/share/icons/hicolor/scalable/apps
 
 install -m 755 app.py %{buildroot}/opt/%{name}/app.py
 install -m 755 install.sh %{buildroot}/opt/%{name}/install.sh
+install -m 644 backend_linux.py platform_support.py hotkeys.py ipc.py %{buildroot}/opt/%{name}/
 install -m 644 gamma_slider_icon.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/gamma-slider-x11.svg
 
 cat > %{buildroot}/usr/bin/gamma-slider-x11 <<'EOF'
@@ -50,6 +51,10 @@ chmod 644 %{buildroot}/usr/share/applications/gamma-slider-x11.desktop
 %files
 /opt/%{name}/app.py
 /opt/%{name}/install.sh
+/opt/%{name}/backend_linux.py
+/opt/%{name}/platform_support.py
+/opt/%{name}/hotkeys.py
+/opt/%{name}/ipc.py
 /usr/bin/gamma-slider-x11
 /usr/share/applications/gamma-slider-x11.desktop
 /usr/share/icons/hicolor/scalable/apps/gamma-slider-x11.svg

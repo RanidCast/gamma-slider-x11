@@ -9,7 +9,6 @@ MENU_FILE="$HOME/.local/share/applications/gamma-slider-x11.desktop"
 AUTOSTART_FILE="$HOME/.config/autostart/gamma-slider-x11.desktop"
 DATA_DIR="$HOME/.local/share/gamma-slider"
 CONFIG_DIR="$HOME/.config/gamma-slider"
-LOCK_FILE="/tmp/gamma_slider.lock"
 
 usage() {
     echo "Usage: $0 [--install|--uninstall|--check]"
@@ -17,7 +16,7 @@ usage() {
 
 uninstall() {
     echo "Uninstalling Gamma Slider X11..."
-    rm -f "$MENU_FILE" "$AUTOSTART_FILE" "$LOCK_FILE"
+    rm -f "$MENU_FILE" "$AUTOSTART_FILE"
     rm -f "$HOME/.local/share/applications/gamma_slider.desktop"
     rm -f "$HOME/.config/autostart/gamma_slider.desktop"
     rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/gamma-slider-x11.svg"

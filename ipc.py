@@ -23,6 +23,7 @@ def socket_path():
 
 
 def parse_cli(argv):
+    argv = [a for a in argv if a]
     if not argv:
         return None
     if len(argv) == 1 and argv[0] in ("--warmer", "--cooler", "--toggle"):
@@ -33,7 +34,10 @@ def parse_cli(argv):
         except ValueError:
             _usage()
         return "temp %d" % value
-    _usage()
+    if argv[0].startswith("--"):
+        _usage()
+    log.warning("Ignoring extra arguments: %s", argv)
+    return None
 
 
 def _usage():

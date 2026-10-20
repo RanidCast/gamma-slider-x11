@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
-VERSION="${VERSION:-1.1.0}"
+VERSION="${VERSION:-1.2.0}"
 PKG_NAME="gamma-slider-x11"
 ARCH="all"
 ROOT="$SCRIPT_DIR/${PKG_NAME}_${VERSION}_${ARCH}"
@@ -15,6 +15,9 @@ mkdir -p "$ROOT/usr/share/applications" "$ROOT/usr/share/icons/hicolor/scalable/
 
 install -m 755 "$PROJECT_ROOT/app.py" "$ROOT/opt/$PKG_NAME/app.py"
 install -m 755 "$PROJECT_ROOT/install.sh" "$ROOT/opt/$PKG_NAME/install.sh"
+for file in backend_linux.py platform_support.py hotkeys.py ipc.py; do
+	install -m 644 "$PROJECT_ROOT/$file" "$ROOT/opt/$PKG_NAME/$file"
+done
 install -m 644 "$PROJECT_ROOT/gamma_slider_icon.svg" "$ROOT/usr/share/icons/hicolor/scalable/apps/gamma-slider-x11.svg"
 
 cat > "$ROOT/usr/bin/gamma-slider-x11" <<'EOF'

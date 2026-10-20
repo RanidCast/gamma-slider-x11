@@ -6,7 +6,8 @@ arch=('x86_64')
 url="https://github.com/RanidCast/gamma-slider-x11"
 license=('GPL-3.0-or-later')
 depends=('python' 'python-pyqt5' 'libx11' 'libxcb')
-optdepends=('python-pyqt6: use PyQt6 instead of PyQt5')
+optdepends=('python-pyqt6: use PyQt6 instead of PyQt5'
+            'python-dbus: KDE Wayland global shortcuts')
 source=("$pkgname-v$pkgver-source.zip::$url/releases/download/v$pkgver/$pkgname-v$pkgver-source.zip")
 sha256sums=('3b4036a8f044810c49c85a4049ce9b0060c1031c53ffebde5d7f7107ad2dbfd1')
 
