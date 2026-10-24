@@ -138,7 +138,7 @@ python3 app.py --temp 4000
 
 On Linux/X11, the application passively grabs configured chords. On KDE Plasma Wayland, KGlobalAccel handles global shortcuts. On other Wayland desktops, bind the CLI commands in the system keyboard settings. The Settings page shows the exact argv for this install, not a desktop-file name. Middle-click toggles the effect only when Qt receives `MiddleClick`; on GNOME AppIndicator that event often never arrives, so middle-click stays the menu workaround below.
 
-Tray-icon wheel and per-monitor temperature are not in this version. Preset buttons (3000 / 4000 / 6500) turn Auto off and apply that temperature. Schedule times are edited in Settings.
+Tray-icon wheel and per-monitor temperature are not in this version. Five preset buttons (1000 / 2000 / 3000 / 4000 / 6500) turn Auto off and apply that temperature; their values can be changed in Settings. Schedule times are edited there as well.
 
 ## GNOME Desktop Known Issues
 

@@ -172,6 +172,11 @@ DEFAULTS = {
     "dusk_end": 21 * 60,
     "day_temp": 6500,
     "night_temp": 3000,
+    "preset_1": 1000,
+    "preset_2": 2000,
+    "preset_3": 3000,
+    "preset_4": 4000,
+    "preset_5": 6500,
 }
 TEMP_MIN = 1000
 WAYLAND_SESSION = is_linux() and os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland"
@@ -180,7 +185,7 @@ POPUP_W = 320
 POPUP_H = 200
 SMOOTH_STEP = 100
 SMOOTH_INTERVAL = 5000
-PRESETS = (3000, 4000, 6500)
+PRESETS = (1000, 2000, 3000, 4000, 6500)
 _QT_KEY_NAMES = {}
 for _qt_name, _label in (
     ("Key_PageUp", "PgUp"),
@@ -552,6 +557,7 @@ class PopupSlider(QWidget):
         self.outside_click_timer.timeout.connect(self._watch_outside_click)
         self._wait_for_mouse_release = False
         self._pending_outside_click = False
+        self._press_started_inside = None
         self._ignore_outside_click_until = 0.0
         self._suppress_tray_show_until = 0.0
         self._plasma_tray_cache = None
@@ -630,9 +636,9 @@ class PopupSlider(QWidget):
 
         presets = QHBoxLayout()
         self.preset_buttons = []
-        for temp in PRESETS:
+        for index, temp in enumerate(self._preset_values()):
             button = QPushButton(str(temp))
-            button.clicked.connect(lambda checked=False, value=temp: self.apply_preset(value))
+            button.clicked.connect(lambda checked=False, i=index: self.apply_preset(self._preset_values()[i]))
             self.preset_buttons.append(button)
             presets.addWidget(button)
         layout.addLayout(presets)
@@ -715,6 +721,17 @@ class PopupSlider(QWidget):
         step_row.addWidget(self.spin_step)
         layout.addLayout(step_row)
 
+        self.presets_label = QLabel()
+        layout.addWidget(self.presets_label)
+        self.preset_spins = []
+        for index, temp in enumerate(self._preset_values(), 1):
+            row = QHBoxLayout()
+            row.addWidget(QLabel(str(index)))
+            spin = self._temp_spin(temp)
+            spin.valueChanged.connect(lambda value, i=index: self._preset_changed(i, value))
+            row.addWidget(spin)
+            layout.addLayout(row)
+
         self.hint_label = QLabel()
         self.hint_label.setWordWrap(True)
         self.hint_label.setTextInteractionFlags(_TEXT_SELECT)
@@ -788,6 +805,18 @@ class PopupSlider(QWidget):
         spin.setSuffix(" K")
         spin.setValue(snap_temp(value))
         return spin
+
+    def _preset_values(self):
+        return [
+            snap_temp(self.s.get("preset_%d" % index, temp))
+            for index, temp in enumerate(PRESETS, 1)
+        ]
+
+    def _preset_changed(self, index, value):
+        temp = snap_temp(value)
+        self.s["preset_%d" % index] = temp
+        self.preset_buttons[index - 1].setText(str(temp))
+        save_settings(self.s)
 
     def _qtime(self, minutes):
         minutes = _as_int(minutes, 0) % (24 * 60)
@@ -896,6 +925,7 @@ class PopupSlider(QWidget):
         self.btn_as.setText(lang["as_on"] if is_autostart_enabled() else lang["as_off"])
         self.btn_settings.setText(lang["settings"])
         self.btn_back.setText(lang["back"])
+        self.presets_label.setText("Пресеты температур" if self.s["lang"] == "ru" else "Temperature presets")
         self.check_hotkeys.setText(lang["hotkeys"])
         self.schedule_warn.setText(lang["schedule_bad"])
         self.title_label.setText(f"{lang['title']}: {self.s['temp']} K")
@@ -1104,6 +1134,8 @@ class PopupSlider(QWidget):
     def hideEvent(self, event):
         self._cancel_capture()
         self.outside_click_timer.stop()
+        self._press_started_inside = None
+        self._pending_outside_click = False
         self.stack.setCurrentIndex(0)
         self.setFixedSize(POPUP_W, POPUP_H)
         super().hideEvent(event)
@@ -1176,12 +1208,12 @@ class PopupSlider(QWidget):
                 location = plasma_tray["location"] if plasma_tray else "bottom"
                 if location == "top":
                     x = anchor_x + (anchor_width - POPUP_W) // 2
-                    y = anchor_y + anchor_height + 8
+                    y = anchor_y + anchor_height
                 elif location == "left":
-                    x = anchor_x + anchor_width + 8
+                    x = anchor_x + anchor_width
                     y = anchor_y + (anchor_height - POPUP_H) // 2
                 elif location == "right":
-                    x = anchor_x - POPUP_W - 8
+                    x = anchor_x - POPUP_W
                     y = anchor_y + (anchor_height - POPUP_H) // 2
                 else:
                     x = anchor_x + (anchor_width - POPUP_W) // 2
@@ -1296,11 +1328,14 @@ class PopupSlider(QWidget):
             return
 
         if left_pressed:
-            self._pending_outside_click = outside
+            if self._press_started_inside is None:
+                self._press_started_inside = not outside
+            self._pending_outside_click = outside and not self._press_started_inside
             return
 
         if self._pending_outside_click and outside:
             self._pending_outside_click = False
+            self._press_started_inside = None
             self._suppress_tray_show_until = time.monotonic() + 0.35
             self.hide()
         else:
@@ -1340,6 +1375,14 @@ class PopupSlider(QWidget):
         return top_left.x() <= pos.x() <= bottom_right.x() and top_left.y() <= pos.y() <= bottom_right.y()
 
     def eventFilter(self, obj, event):
+        if event.type() == _EVT_MOUSE_PRESS and event.button() == _LEFT_BUTTON:
+            current = obj if isinstance(obj, QWidget) else None
+            while current:
+                if current is self or current.window() is self:
+                    self._press_started_inside = True
+                    self._pending_outside_click = False
+                    break
+                current = current.parentWidget()
         return super().eventFilter(obj, event)
 
 class TrayApp(QObject):
