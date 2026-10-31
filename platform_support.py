@@ -115,24 +115,12 @@ def acquire_single_instance():
     runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
     lock_dir = runtime_dir or os.path.expanduser("~/.cache")
     os.makedirs(lock_dir, exist_ok=True)
-    handles = []
-    for path in (
-        os.path.join(lock_dir, "gamma-slider.lock"),
-        "/tmp/gamma_slider.lock",
-    ):
-        try:
-            handle = open(path, "w")
-            fcntl.lockf(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError:
-            for held in handles:
-                try:
-                    held.close()
-                except OSError:
-                    pass
-            return False
-        handles.append(handle)
-    _lock_handle = handles
-    return True
+    _lock_handle = open(os.path.join(lock_dir, "gamma-slider.lock"), "w")
+    try:
+        fcntl.lockf(_lock_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except OSError:
+        return False
 
 
 def _windows_autostart_command():
