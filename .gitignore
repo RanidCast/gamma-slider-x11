@@ -21,6 +21,10 @@ uninstall.sh
 appComment.py
 LastAnswer.md
 *.code-workspace
+.kilo/
+.stfolder/
+.stignore
+/Сборка Windows.txt
 g-engine/Answer.md
 g-engine/EXAMPLES.md
 g-engine/G-ENGINE-README.md
