@@ -4,9 +4,9 @@
 
 A small multi-platform tray utility for changing screen color temperature on Linux/X11, KDE Plasma Wayland, Windows, and macOS.
 
-On X11 the app uses a tiny bundled RandR gamma engine. On KDE Plasma Wayland it controls KWin Night Light. Click the tray icon, move the slider, and the screen temperature changes.
+It is a lightweight GUI wrapper around a tiny bundled X11/RandR gamma engine. The app was made for quick personal use from the system tray: click the tray icon, move the slider, and the screen temperature changes immediately.
 
-> Wayland support currently requires KDE Plasma/KWin. Its temperature range is 1000K–6500K; KWin does not expose the app's gamma/visibility or color-mode controls, and the compositor decides where popup windows appear. Other Linux desktops continue to use the X11/RandR backend. Windows uses a separate GDI backend. macOS uses CoreGraphics display transfer tables.
+> Linux uses RandR on X11. KDE Plasma Wayland uses KWin Night Color and supports temperatures from 1000K to 6500K; gamma visibility and color calculation modes are unavailable there. Other Wayland desktops are not supported. Windows uses a separate GDI backend, and macOS uses CoreGraphics display transfer tables.
 
 ## Screenshot
 
@@ -16,7 +16,7 @@ On X11 the app uses a tiny bundled RandR gamma engine. On KDE Plasma Wayland it 
 ## Features
 
 - Tray icon with a compact popup slider.
-- Color temperature range from 1000K to 10000K on X11 and 1000K to 6500K on KDE Plasma Wayland.
+- Color temperature range from 1000K to 10000K.
 - Optional value display directly in the tray icon.
 - Enable/disable switch.
 - Optional higher gamma/contrast mode for better visibility.
@@ -31,13 +31,19 @@ On X11 the app uses a tiny bundled RandR gamma engine. On KDE Plasma Wayland it 
 - Python 3.
 - PyQt5 or PyQt6.
 
-### Linux
+### Linux/X11
 
-- X11 session with RandR support, or KDE Plasma Wayland with KWin Night Light and KGlobalAccel.
-- On KDE Wayland, temperature, presets, Auto schedule, and KDE global hotkeys work; gamma visibility and color calculation modes are unavailable.
-- KDE Wayland global hotkeys require PyQt5 and `python-dbus`; on Arch-based systems install `python-dbus` with `sudo pacman -S python-dbus`.
+- Linux with an X11 session.
+- X11 RandR support.
 
 On many desktop distributions PyQt is already available. If not, install the package from your distribution repositories, for example `python-pyqt5`, `python3-pyqt5`, or `python3-pyqt6`.
+
+### KDE Plasma Wayland
+
+- KDE Plasma running a Wayland session with KWin Night Color.
+- PyQt5 and `python-dbus` are required for KDE global shortcuts.
+
+KWin applies temperature changes. The range is 1000K–6500K; gamma visibility and color calculation modes are not available in this session.
 
 ## Windows
 
@@ -51,7 +57,7 @@ Turn off Windows Night Light. HDR and some NVIDIA drivers ignore `SetDeviceGamma
 
 The repository name still says `x11` for historical reasons. Windows uses a separate GDI gamma backend.
 
-The three color modes are available on Windows, macOS, and Linux/X11. On KDE Plasma Wayland, KWin applies its own color temperature and does not expose those modes or the visibility gamma control.
+The three color modes are available on all supported platforms. They affect the generated color ramp; the platform-specific backend only applies that ramp to the display.
 
 ## macOS
 
@@ -125,7 +131,7 @@ sudo pacman -U ./gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst
 
 Default chords are `Ctrl+Alt+PgUp` (warmer, +100 K) and `Ctrl+Alt+PgDown` (cooler, −100 K). They change temperature only while the effect is enabled and Auto is off.
 
-On Windows, macOS, Linux/X11, and KDE Plasma Wayland, configured hotkeys work while another app has focus. KDE Wayland registers them with KGlobalAccel; choose the chords in the app's Settings or edit them in System Settings → Shortcuts. Hotkeys are active only while the effect is enabled and Auto is off. A chord already in use may be rejected.
+On Windows, macOS, Linux/X11, and KDE Plasma Wayland, configured hotkeys work while another app has focus. KDE Plasma Wayland registers them with KGlobalAccel and requires PyQt5 plus `python-dbus`. Holding a hotkey repeats the temperature change. Hotkeys are active only while the effect is enabled and Auto is off. A chord already used by the system or another app may fail to register; choose an available chord in Settings.
 
 A second instance sends one command to the running app:
 
@@ -136,7 +142,7 @@ python3 app.py --toggle
 python3 app.py --temp 4000
 ```
 
-On Linux/X11, the application passively grabs configured chords. On KDE Plasma Wayland, KGlobalAccel handles global shortcuts. On other Wayland desktops, bind the CLI commands in the system keyboard settings. The Settings page shows the exact argv for this install, not a desktop-file name. Middle-click toggles the effect only when Qt receives `MiddleClick`; on GNOME AppIndicator that event often never arrives, so middle-click stays the menu workaround below.
+On Linux/X11, the application passively grabs configured chords. Global hotkeys are unavailable on Wayland, so bind the CLI commands in the system keyboard settings instead. The Settings page shows the exact argv for this install, not a desktop-file name. Middle-click toggles the effect only when Qt receives `MiddleClick`; on GNOME AppIndicator that event often never arrives, so middle-click stays the menu workaround below.
 
 Tray-icon wheel and per-monitor temperature are not in this version. Five preset buttons (1000 / 2000 / 3000 / 4000 / 6500) turn Auto off and apply that temperature; their values can be changed in Settings. Schedule times are edited there as well.
 
@@ -148,7 +154,7 @@ If you are running the GNOME desktop environment, please note that GNOME has nat
 2. **Click Behavior Bug:** Due to the way GNOME's AppIndicator extension translates mouse events to PyQt applications, single-clicking (both Left and Right click) on the tray icon might immediately trigger the context menu and execute the "Exit/Quit" action.
    - **Workaround:** Double-click the tray icon to open the program window properly, or use the **Middle Mouse Button (Scroll Click)** to trigger a clean Right-click menu without instantly closing the app.
 
-On KDE Plasma Wayland, Gamma Slider uses KWin Night Light. Other Wayland desktops are not supported; use an X11 session for those systems.
+On Wayland, KDE Plasma is supported through KWin Night Color. Other Wayland desktops are not supported; use an X11 session on those systems.
 
 ## Licensing
 
