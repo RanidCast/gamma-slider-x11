@@ -485,9 +485,10 @@ def create_backend():
     if sys.platform == "darwin":
         from backend_macos import MacOSBackend
         return MacOSBackend()
-    from backend_linux import LinuxBackend, WaylandBackend
     if WAYLAND_SESSION:
+        from backend_linux import WaylandBackend
         return WaylandBackend()
+    from backend_linux import LinuxBackend
     backend = LinuxBackend(paths.engine)
     backend.unpack()
     return backend
@@ -567,7 +568,8 @@ class PopupSlider(QWidget):
         self._plasma_tray_reposition = False
         self._plasma_tray_ready.connect(self._plasma_tray_query_done)
         self._application = QApplication.instance()
-        self._application.applicationStateChanged.connect(self._application_state_changed)
+        if WAYLAND_SESSION:
+            self._application.applicationStateChanged.connect(self._application_state_changed)
         self.x11_pointer = X11Pointer() if is_linux() else None
         self.win_pointer = Win32Pointer() if sys.platform == "win32" else None
 
@@ -1219,7 +1221,7 @@ class PopupSlider(QWidget):
                     y = anchor_y + (anchor_height - POPUP_H) // 2
                 else:
                     x = anchor_x + (anchor_width - POPUP_W) // 2
-                    y = anchor_y - POPUP_H - 8
+                    y = anchor_y - POPUP_H
             x = min(max(x, geo.x()), geo.x() + geo.width() - POPUP_W)
             y = min(max(y, geo.y()), geo.y() + geo.height() - POPUP_H)
         else:
@@ -1282,6 +1284,17 @@ class PopupSlider(QWidget):
             log.debug("Cannot query Plasma tray geometry: %s", exc)
         return None
 
+    def _application_state_changed(self, state):
+        if state != _APP_ACTIVE and self.isVisible():
+            QTimer.singleShot(120, self._hide_if_application_inactive)
+
+    def _hide_if_application_inactive(self):
+        if not self.isVisible() or self._application.applicationState() == _APP_ACTIVE:
+            return
+        if QApplication.activePopupWidget() is not None:
+            return
+        self.hide_from_tray()
+
     def ignore_outside_clicks(self, ms=350):
         self._pending_outside_click = False
         self._ignore_outside_click_until = time.monotonic() + (ms / 1000.0)
@@ -1342,17 +1355,7 @@ class PopupSlider(QWidget):
             self.hide()
         else:
             self._pending_outside_click = False
-
-    def _application_state_changed(self, state):
-        if state != _APP_ACTIVE and self.isVisible():
-            QTimer.singleShot(120, self._hide_if_application_inactive)
-
-    def _hide_if_application_inactive(self):
-        if not self.isVisible() or self._application.applicationState() == _APP_ACTIVE:
-            return
-        if QApplication.activePopupWidget() is not None:
-            return
-        self.hide_from_tray()
+            self._press_started_inside = None
 
     def _contains_global_pos(self, pos):
         widget = QApplication.widgetAt(pos)
@@ -1397,9 +1400,6 @@ class TrayApp(QObject):
         self._hotkey_hwnd = None
 
         self.settings = load_settings()
-        self.settings["temp"] = snap_temp(self.settings.get("temp", DEFAULTS["temp"]))
-        self.settings["day_temp"] = snap_temp(self.settings.get("day_temp", DEFAULTS["day_temp"]))
-        self.settings["night_temp"] = snap_temp(self.settings.get("night_temp", DEFAULTS["night_temp"]))
         if (
             startup_command
             and startup_command.startswith("temp ")
@@ -1433,14 +1433,13 @@ class TrayApp(QObject):
         self._mac_repeat_timer = QTimer(self)
         self._mac_repeat_timer.setInterval(220)
         self._mac_repeat_timer.timeout.connect(self._repeat_mac_hotkey)
-        self._bridge = QTimer(self)
-        self._bridge.timeout.connect(self._drain_bridge)
-        self._bridge.start(50)
-        log.info("Qt platform: %s", QApplication.platformName())
         try:
             self.rebind_hotkeys()
         except Exception:
             log.exception("Hotkey bind failed")
+        self._bridge = QTimer(self)
+        self._bridge.timeout.connect(self._drain_bridge)
+        self._bridge.start(50)
         if startup_command:
             QTimer.singleShot(800, lambda: self.popup.handle_command(startup_command))
 
@@ -1504,14 +1503,8 @@ class TrayApp(QObject):
         self.grabber.rebind(enabled, up, down)
 
     def configure_kde_shortcuts(self):
-        try:
-            subprocess.Popen(
-                ["systemsettings", "kcm_keys"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except OSError as exc:
-            log.warning("Cannot open KDE shortcut settings: %s", exc)
+        if self.kde_hotkeys is not None:
+            self.kde_hotkeys.configure()
 
     def _on_win_hotkey(self, hotkey_id):
         popup = getattr(self, "popup", None)
@@ -1619,8 +1612,6 @@ def main():
             print("gamma-slider is not accepting commands", file=sys.stderr)
             sys.exit(1)
         app = QApplication(sys.argv)
-        app.setApplicationName("gamma-slider-x11")
-        app.setDesktopFileName("gamma-slider-x11")
         app.setQuitOnLastWindowClosed(False)
         tray = TrayApp(app, command)
         log.info("entering event loop")
