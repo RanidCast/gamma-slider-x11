@@ -472,6 +472,8 @@ def load_settings():
     for key in ("hotkey_up", "hotkey_down", "lang"):
         if key in s and not isinstance(s[key], str):
             s[key] = str(s[key])
+    for key in ("hotkey_up", "hotkey_down"):
+        s[key] = hotkeys.canonical_hotkey_spec(str(s.get(key, DEFAULTS[key]))) or str(s.get(key, DEFAULTS[key]))
     if _as_int(s.get("hotkey_step", 100), 100) == 500:
         s["hotkey_step"] = 100
     return s
@@ -1427,13 +1429,13 @@ class TrayApp(QObject):
             log.warning("System tray is not available")
         self.tray.show()
         self.ipc.start()
-        self._bridge = QTimer(self)
-        self._bridge.timeout.connect(self._drain_bridge)
-        self._bridge.start(50)
         self._mac_held_hotkey = None
         self._mac_repeat_timer = QTimer(self)
         self._mac_repeat_timer.setInterval(220)
         self._mac_repeat_timer.timeout.connect(self._repeat_mac_hotkey)
+        self._bridge = QTimer(self)
+        self._bridge.timeout.connect(self._drain_bridge)
+        self._bridge.start(50)
         log.info("Qt platform: %s", QApplication.platformName())
         try:
             self.rebind_hotkeys()
@@ -1462,7 +1464,9 @@ class TrayApp(QObject):
             and not bool(self.settings.get("auto", 0))
         )
         self._mac_held_hotkey = None
-        self._mac_repeat_timer.stop()
+        timer = getattr(self, "_mac_repeat_timer", None)
+        if timer is not None:
+            timer.stop()
         up = str(self.settings.get("hotkey_up", DEFAULTS["hotkey_up"]))
         down = str(self.settings.get("hotkey_down", DEFAULTS["hotkey_down"]))
         if WAYLAND_SESSION:
@@ -1481,12 +1485,15 @@ class TrayApp(QObject):
                     "\nKGlobalAccel недоступен: нужен dbus-python и KDE Plasma."
                 )
             if available and enabled:
-                if assigned.get("warmer"):
-                    self.settings["hotkey_up"] = assigned["warmer"]
-                if assigned.get("cooler"):
-                    self.settings["hotkey_down"] = assigned["cooler"]
-                save_settings(self.settings)
-                self.popup._refresh_hotkey_buttons()
+                changed = False
+                for action, setting_key in (("warmer", "hotkey_up"), ("cooler", "hotkey_down")):
+                    text = hotkeys.canonical_hotkey_spec(assigned.get(action, ""))
+                    if text and text != self.settings.get(setting_key):
+                        self.settings[setting_key] = text
+                        changed = True
+                if changed:
+                    save_settings(self.settings)
+                    self.popup._refresh_hotkey_buttons()
             return assigned
         if sys.platform == "win32" and self._hotkey_hwnd:
             hotkeys.unregister_win(self._hotkey_hwnd)
@@ -1523,7 +1530,7 @@ class TrayApp(QObject):
         if isinstance(event, tuple) and event and event[0] == "kde-binding":
             _, action, sequence = event
             key = "hotkey_up" if action == "warmer" else "hotkey_down"
-            self.settings[key] = sequence
+            self.settings[key] = hotkeys.canonical_hotkey_spec(sequence) or sequence
             save_settings(self.settings)
             self.popup._refresh_hotkey_buttons()
             return

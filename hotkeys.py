@@ -106,6 +106,7 @@ _X_KEYSYM_EXTRA = {
 }
 _QT_KEYPAD = 0x20000000
 _QT_MOD_BITS = 0x02000000 | 0x04000000 | 0x08000000 | 0x10000000 | 0x20000000
+_KEYPAD_TOKENS = {"num", "numpad", "keypad"}
 _NUMPAD_DIGIT_KEYS = {
     "PgUp": 0x39,
     "PgDown": 0x33,
@@ -117,6 +118,17 @@ _NUMPAD_DIGIT_KEYS = {
     "Up": 0x38,
     "Right": 0x36,
     "Down": 0x32,
+}
+_NUMPAD_NAV_FROM_DIGIT = {
+    "9": "PgUp",
+    "3": "PgDown",
+    "7": "Home",
+    "1": "End",
+    "0": "Insert",
+    "8": "Up",
+    "2": "Down",
+    "4": "Left",
+    "6": "Right",
 }
 
 for _i in range(1, 13):
@@ -166,6 +178,8 @@ def parse_hotkey(spec):
         low = token.lower()
         if low in _REJECTED_MODS:
             return None
+        if low in _KEYPAD_TOKENS:
+            continue
         if low in _MOD_KEYS:
             mods.add(_MOD_KEYS[low])
             continue
@@ -177,6 +191,34 @@ def parse_hotkey(spec):
     if key is None:
         return None
     return mods, key
+
+
+def _spec_has_keypad(spec):
+    if not isinstance(spec, str):
+        return False
+    return any(part.strip().lower() in _KEYPAD_TOKENS for part in spec.split("+"))
+
+
+def format_hotkey(mods, key):
+    parts = []
+    if "ctrl" in mods:
+        parts.append("Ctrl")
+    if "alt" in mods:
+        parts.append("Alt")
+    if "shift" in mods:
+        parts.append("Shift")
+    parts.append(key)
+    return "+".join(parts)
+
+
+def canonical_hotkey_spec(spec):
+    parsed = parse_hotkey(spec)
+    if not parsed:
+        return spec if isinstance(spec, str) else ""
+    mods, key = parsed
+    if _spec_has_keypad(spec):
+        key = _NUMPAD_NAV_FROM_DIGIT.get(key, key)
+    return format_hotkey(mods, key)
 
 
 def linux_grab_skipped():
@@ -329,15 +371,13 @@ class KDEGlobalShortcuts:
     @classmethod
     def _qt_sequences(cls, spec):
         base = cls._qt_sequence(spec)
-        if not base:
-            return []
         parsed = parse_hotkey(spec)
         if not parsed:
-            return [base]
+            return [base] if base else []
         mods, name = parsed
+        if base & _QT_KEYPAD or _spec_has_keypad(spec):
+            name = _NUMPAD_NAV_FROM_DIGIT.get(name, name)
         digit = _NUMPAD_DIGIT_KEYS.get(name)
-        if digit is None:
-            return [base]
         mask = 0
         if "shift" in mods:
             mask |= 0x02000000
@@ -345,14 +385,23 @@ class KDEGlobalShortcuts:
             mask |= 0x04000000
         if "alt" in mods:
             mask |= 0x08000000
-        qt_key = base & ~_QT_MOD_BITS
         keys = []
-        for extra in (qt_key, digit):
-            combo = mask | _QT_KEYPAD | extra
-            if combo not in keys:
+
+        def add(combo):
+            combo = int(combo)
+            if combo and combo not in keys:
                 keys.append(combo)
-        if base not in keys:
-            keys.append(base)
+
+        if digit is None:
+            add(base)
+            return keys
+        nav = cls._qt_sequence(name) & ~_QT_MOD_BITS
+        if not nav:
+            nav = base & ~_QT_MOD_BITS
+        add(mask | nav)
+        add(mask | _QT_KEYPAD | nav)
+        add(mask | _QT_KEYPAD | digit)
+        add(base)
         return keys
 
     @staticmethod
@@ -398,7 +447,13 @@ class KDEGlobalShortcuts:
                 )
                 current = [int(item) for item in result if int(item)]
             if current:
-                assigned[action_key] = self._sequence_text(current[0])
+                assigned[action_key] = canonical_hotkey_spec(self._sequence_text(current[0]))
+            log.info(
+                "KGlobalAccel %s wanted=%s got=%s",
+                action_key,
+                [self._sequence_text(key) for key in keys],
+                [self._sequence_text(key) for key in current],
+            )
             if not enabled:
                 self.interface.setInactive(action_id)
         try:
