@@ -6,7 +6,7 @@ A small multi-platform tray utility for changing screen color temperature on Lin
 
 It is a lightweight GUI wrapper around a tiny bundled X11/RandR gamma engine. The app was made for quick personal use from the system tray: click the tray icon, move the slider, and the screen temperature changes immediately.
 
-> Linux uses RandR on X11. KDE Plasma Wayland uses KWin Night Color and supports temperatures from 1000K to 6500K; gamma visibility and color calculation modes are unavailable there. Other Wayland desktops are not supported. Windows uses a separate GDI backend, and macOS uses CoreGraphics display transfer tables.
+> Linux uses RandR on X11. KDE Plasma Wayland uses KWin Night Color and supports temperatures from 1000K to 6500K; gamma visibility and color calculation modes are unavailable there. GNOME, Sway, Hyprland, and other Wayland desktops are not supported. Windows uses a separate GDI backend, and macOS uses CoreGraphics display transfer tables.
 
 ## Screenshot
 
@@ -43,7 +43,7 @@ On many desktop distributions PyQt is already available. If not, install the pac
 - KDE Plasma running a Wayland session with KWin Night Color.
 - PyQt5 and `python-dbus` are required for KDE global shortcuts.
 
-KWin applies temperature changes. The range is 1000K–6500K; gamma visibility and color calculation modes are not available in this session.
+KWin applies temperature changes. The range is 1000K–6500K; gamma visibility and color calculation modes are not available in this session. GNOME, Sway, Hyprland, and other Wayland compositors have no backend in this version.
 
 ## Windows
 
@@ -154,7 +154,7 @@ If you are running the GNOME desktop environment, please note that GNOME has nat
 2. **Click Behavior Bug:** Due to the way GNOME's AppIndicator extension translates mouse events to PyQt applications, single-clicking (both Left and Right click) on the tray icon might immediately trigger the context menu and execute the "Exit/Quit" action.
    - **Workaround:** Double-click the tray icon to open the program window properly, or use the **Middle Mouse Button (Scroll Click)** to trigger a clean Right-click menu without instantly closing the app.
 
-On Wayland, KDE Plasma is supported through KWin Night Color. Other Wayland desktops are not supported; use an X11 session on those systems.
+On Wayland, only KDE Plasma is supported (KWin Night Color). GNOME, Sway, Hyprland, and other Wayland desktops cannot change temperature with this app; use an X11 session there. The GNOME tray notes above apply to GNOME on X11 only.
 
 ## Licensing
 
