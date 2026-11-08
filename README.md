@@ -10,7 +10,7 @@ It is a lightweight GUI wrapper around a tiny bundled X11/RandR gamma engine. Th
 
 ## Screenshot
 
-![Tray popup](screenshots/English(1.1).png)
+![Tray popup](screenshots/English(1.2).png)
 
 
 ## Features
@@ -113,18 +113,19 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for the development, build, and release wor
 
 Prebuilt release files are attached in GitHub Releases:
 
-- `gamma-slider-x11-v1.1.0-source.zip` for the plain source bundle
-- `gamma-slider-x11_1.1.0_all.deb` for Debian/Ubuntu/Mint
-- `gamma-slider-x11-1.1.0-1.noarch.rpm` for Fedora/RPM-based distros
-- `gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst` for Arch
-- `gamma-slider-macos-<ver>.dmg` for macOS (Apple Silicon)
+- `gamma-slider-x11-v1.2.0-source.zip` for the plain source bundle
+- `gamma-slider-x11_1.2.0_all.deb` for Debian/Ubuntu/Mint
+- `gamma-slider-x11-1.2.0-1.noarch.rpm` for Fedora/RPM-based distros
+- `gamma-slider-x11-1.2.0-1-x86_64.pkg.tar.zst` for Arch
+- `gamma-slider-windows-v1.2.0.zip` for Windows
+- `gamma-slider-macos-v1.2.0.dmg` for macOS (Apple Silicon)
 
 Install the packages directly:
 
 ```bash
-sudo apt install ./gamma-slider-x11_1.1.0_all.deb
-sudo dnf install ./gamma-slider-x11-1.1.0-1.noarch.rpm
-sudo pacman -U ./gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst
+sudo apt install ./gamma-slider-x11_1.2.0_all.deb
+sudo dnf install ./gamma-slider-x11-1.2.0-1.noarch.rpm
+sudo pacman -U ./gamma-slider-x11-1.2.0-1-x86_64.pkg.tar.zst
 ```
 
 ## Hotkeys and CLI
@@ -142,7 +143,7 @@ python3 app.py --toggle
 python3 app.py --temp 4000
 ```
 
-On Linux/X11, the application passively grabs configured chords. Global hotkeys are unavailable on Wayland, so bind the CLI commands in the system keyboard settings instead. The Settings page shows the exact argv for this install, not a desktop-file name. Middle-click toggles the effect only when Qt receives `MiddleClick`; on GNOME AppIndicator that event often never arrives, so middle-click stays the menu workaround below.
+On Linux/X11, the application passively grabs configured chords. On KDE Plasma Wayland, KGlobalAccel registers them. Other Wayland desktops have no global hotkeys here; bind the CLI commands in the system keyboard settings instead. The Settings page shows the exact argv for this install, not a desktop-file name. Middle-click toggles the effect only when Qt receives `MiddleClick`; on GNOME AppIndicator that event often never arrives, so middle-click stays the menu workaround below.
 
 Tray-icon wheel and per-monitor temperature are not in this version. Five preset buttons (1000 / 2000 / 3000 / 4000 / 6500) turn Auto off and apply that temperature; their values can be changed in Settings. Schedule times are edited there as well.
 

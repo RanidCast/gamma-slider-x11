@@ -10,7 +10,7 @@
 
 ## Скриншот
 
-![Окно слайдера](screenshots/Russian(1.1).png)
+![Окно слайдера](screenshots/Russian(1.2).png)
 
 
 ## Возможности
@@ -113,18 +113,19 @@ python3 app.py
 
 Готовые файлы релиза прикрепляются в GitHub Releases:
 
-- `gamma-slider-x11-v1.1.0-source.zip` для исходного архива
-- `gamma-slider-x11_1.1.0_all.deb` для Debian/Ubuntu/Mint
-- `gamma-slider-x11-1.1.0-1.noarch.rpm` для Fedora/RPM-based дистрибутивов
-- `gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst` для Arch
-- `gamma-slider-macos-<ver>.dmg` для macOS (Apple Silicon)
+- `gamma-slider-x11-v1.2.0-source.zip` для исходного архива
+- `gamma-slider-x11_1.2.0_all.deb` для Debian/Ubuntu/Mint
+- `gamma-slider-x11-1.2.0-1.noarch.rpm` для Fedora/RPM-based дистрибутивов
+- `gamma-slider-x11-1.2.0-1-x86_64.pkg.tar.zst` для Arch
+- `gamma-slider-windows-v1.2.0.zip` для Windows
+- `gamma-slider-macos-v1.2.0.dmg` для macOS (Apple Silicon)
 
 Пакеты ставятся напрямую:
 
 ```bash
-sudo apt install ./gamma-slider-x11_1.1.0_all.deb
-sudo dnf install ./gamma-slider-x11-1.1.0-1.noarch.rpm
-sudo pacman -U ./gamma-slider-x11-1.1.0-1-x86_64.pkg.tar.zst
+sudo apt install ./gamma-slider-x11_1.2.0_all.deb
+sudo dnf install ./gamma-slider-x11-1.2.0-1.noarch.rpm
+sudo pacman -U ./gamma-slider-x11-1.2.0-1-x86_64.pkg.tar.zst
 ```
 
 ## Горячие клавиши и CLI
@@ -142,7 +143,7 @@ python3 app.py --toggle
 python3 app.py --temp 4000
 ```
 
-В Linux/X11 приложение пассивно захватывает настроенные сочетания. Глобальные горячие клавиши недоступны в Wayland, поэтому назначьте там CLI-команды в системных настройках клавиатуры. Страница настроек показывает точный argv этой установки, а не имя .desktop-файла. Средний клик переключает эффект, только если Qt получает `MiddleClick`; в GNOME AppIndicator это событие часто не доходит, поэтому средний клик остаётся обходом для меню, как описано ниже.
+В Linux/X11 приложение пассивно захватывает настроенные сочетания. В KDE Plasma Wayland их регистрирует KGlobalAccel. В остальных Wayland-окружениях глобальных клавиш нет — назначьте CLI-команды в системных настройках клавиатуры. Страница настроек показывает точный argv этой установки, а не имя .desktop-файла. Средний клик переключает эффект, только если Qt получает `MiddleClick`; в GNOME AppIndicator это событие часто не доходит, поэтому средний клик остаётся обходом для меню, как описано ниже.
 
 Колеса мыши по значку в трее и отдельной температуры для каждого монитора в этой версии нет. Пять кнопок пресетов (1000 / 2000 / 3000 / 4000 / 6500) выключают авторежим и устанавливают выбранную температуру; значения пресетов можно изменить в настройках. Там же меняется расписание.
 

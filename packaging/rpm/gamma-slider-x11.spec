@@ -60,5 +60,8 @@ chmod 644 %{buildroot}/usr/share/applications/gamma-slider-x11.desktop
 /usr/share/icons/hicolor/scalable/apps/gamma-slider-x11.svg
 
 %changelog
+* Sun Nov 08 2026 RanidCast - 1.2.0-1
+- Add macOS, KDE Plasma Wayland, global hotkeys, CLI, presets, and schedule settings
+
 * Sat Sep 19 2026 RanidCast - 1.1.0-1
 - Add Windows support, color modes, and updated documentation

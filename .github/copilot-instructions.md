@@ -11,7 +11,7 @@
 ## Platform responsibilities
 
 - Linux development and testing happen in the canonical CachyOS clone.
-- Linux supports X11 only. Do not claim Wayland support.
+- Linux supports X11 and KDE Plasma Wayland (KWin Night Color). Do not claim GNOME, Sway, Hyprland, or other Wayland desktops.
 - Windows builds are produced on Windows or by the GitHub Actions workflow in `.github/workflows/windows-release.yml`.
 - The Windows build is an onedir PyInstaller build. Keep `gamma-slider.exe` together with its `_internal` directory.
 - macOS builds are produced on macOS or by `.github/workflows/macos-release.yml`. The deliverable is a DMG containing `Gamma Slider.app`.

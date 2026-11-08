@@ -76,7 +76,7 @@ Ad-hoc signing is used. Notarization requires an Apple Developer ID and is not p
 
 - `v1.0` is the original release.
 - `v1.1.0` adds Windows support, the Windows GDI backend, three color calculation modes, Windows per-user autostart, and updated screenshots/documentation.
-- `v1.2.0` is intended to add macOS support: a CoreGraphics backend, LaunchAgent autostart, and a DMG from GitHub Actions.
+- `v1.2.0` adds macOS (CoreGraphics, LaunchAgent, DMG), KDE Plasma Wayland (KWin Night Color), global hotkeys, CLI IPC, presets, and schedule settings.
 - Future releases should use semantic version tags such as `v1.3.0`.
 
 Git history is already present in this clone. Inspect it with:

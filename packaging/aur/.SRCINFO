@@ -1,6 +1,6 @@
 pkgbase = gamma-slider-x11
-	pkgdesc = Simple X11 tray app for changing screen color temperature
-	pkgver = 1.1.0
+	pkgdesc = Tray app for screen color temperature on X11 and KDE Plasma Wayland
+	pkgver = 1.2.0
 	pkgrel = 1
 	url = https://github.com/RanidCast/gamma-slider-x11
 	arch = x86_64
@@ -10,7 +10,8 @@ pkgbase = gamma-slider-x11
 	depends = libx11
 	depends = libxcb
 	optdepends = python-pyqt6: use PyQt6 instead of PyQt5
-	source = gamma-slider-x11-v1.1.0-source.zip::https://github.com/RanidCast/gamma-slider-x11/releases/download/v1.1.0/gamma-slider-x11-v1.1.0-source.zip
-	sha256sums = 3b4036a8f044810c49c85a4049ce9b0060c1031c53ffebde5d7f7107ad2dbfd1
+	optdepends = python-dbus: KDE Wayland global shortcuts
+	source = gamma-slider-x11-v1.2.0-source.zip::https://github.com/RanidCast/gamma-slider-x11/releases/download/v1.2.0/gamma-slider-x11-v1.2.0-source.zip
+	sha256sums = 606e549d31057a205835620c101a8abe103dfc19e98332d2f5a80552e38981e2
 
 pkgname = gamma-slider-x11
